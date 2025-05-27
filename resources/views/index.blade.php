@@ -7,11 +7,6 @@
     <title>Aplikasi Catatan Pengeluaran Harian</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Visualization & Content Choices:
-        - Source: Daily expense entries (user input). Goal: Inform, Organize, Input. Method: Interactive calendar (HTML/CSS/JS) to select dates. Dynamic list (HTML/JS) to display expenses. Input form (HTML) for adding expenses. Interaction: Clicking dates on calendar updates expense view; submitting form adds expense to list and updates totals/chart. Justification: Provides a clear, interactive way to manage daily financial records.
-        - Source: Aggregated daily expenses for the current month. Goal: Inform, Compare. Method: Bar chart (Chart.js on Canvas) showing daily totals for the selected month. Interaction: Chart updates when month changes or new expense is added/deleted for a day in the current month. Justification: Visual overview of
-spending patterns within the month.
-        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -73,6 +68,30 @@ spending patterns within the month.
             background-color: #f3f4f6;
             /* gray-100 */
         }
+
+        .today-highlight {
+            background-color: #fdba74;
+            /* orange-300 */
+            color: #7c2d12;
+            /* orange-900 */
+            font-weight: bold;
+            border: 1px solid #f97316;
+            /* orange-500 */
+        }
+
+        .today-highlight:hover:not(.selected) {
+            background-color: #fed7aa;
+            /* orange-200 */
+        }
+
+        .selected.today-highlight {
+            /* Jika hari ini juga terpilih, gaya 'selected' lebih diutamakan */
+            background-color: #0284c7 !important;
+            /* sky-600 */
+            color: white !important;
+            border: none;
+            /* Hapus border oranye jika terpilih */
+        }
     </style>
 </head>
 
@@ -120,7 +139,7 @@ spending patterns within the month.
                         </div>
                         <div>
                             <label for="expenseAmount" class="block text-sm font-medium text-stone-700">Jumlah (Rp)</label>
-                            <input type="number" id="expenseAmount" name="expenseAmount" required class="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" placeholder="Contoh: 25000">
+                            <input type="text" id="expenseAmount" name="expenseAmount" required class="mt-1 block w-full px-3 py-2 border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" placeholder="Contoh: 25000">
                         </div>
                         <button type="submit" class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition duration-150">Tambah Pengeluaran</button>
                     </form>
@@ -150,9 +169,25 @@ spending patterns within the month.
         let currentDate;
         let selectedDate = null;
 
-        const MIN_DATE = new Date(2025, 4, 21);
+        const MIN_DATE = new Date(2025, 4, 1); // Anggap Mei dimulai dari tanggal 1
         const MAX_DATE = new Date(2025, 11, 31);
         const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+        // Fungsi untuk memformat angka ke format ribuan Indonesia
+        function formatNumberInput(value) {
+            if (!value) return '';
+            // Hapus semua karakter non-digit kecuali jika itu adalah input awal yang kosong
+            let numStr = String(value).replace(/[^\d]/g, '');
+            if (numStr === '') return '';
+            return parseInt(numStr, 10).toLocaleString('id-ID');
+        }
+
+        // Fungsi untuk mendapatkan nilai angka murni dari input yang terformat
+        function getUnformattedNumber(formattedValue) {
+            if (!formattedValue) return 0;
+            return parseInt(String(formattedValue).replace(/\./g, ''), 10) || 0;
+        }
+
 
         document.addEventListener('DOMContentLoaded', function() {
             calendarGrid = document.getElementById('calendarGrid');
@@ -187,6 +222,27 @@ spending patterns within the month.
                 await renderCalendar();
                 await renderExpensesChart();
             };
+
+            // Event listener untuk formatting input jumlah
+            if (expenseAmountInput) {
+                expenseAmountInput.addEventListener('input', function(e) {
+                    const originalValue = e.target.value;
+                    const formattedValue = formatNumberInput(originalValue);
+                    // Untuk menjaga posisi kursor, ini bisa jadi rumit.
+                    // Untuk simplisitas, kita set value saja.
+                    // Jika string berubah, browser biasanya meletakkan kursor di akhir.
+                    if (originalValue !== formattedValue) {
+                        e.target.value = formattedValue;
+                    }
+                });
+                // Mencegah input non-numerik jika diperlukan (selain yang sudah dihandle formatNumberInput)
+                expenseAmountInput.addEventListener('keypress', function(e) {
+                    if (e.key.length === 1 && (e.key < '0' || e.key > '9') && e.key !== '.' && e.key !== ',') {
+                        e.preventDefault();
+                    }
+                });
+            }
+
 
             initializeApp();
         });
@@ -231,13 +287,8 @@ spending patterns within the month.
 
                 const filteredExpenses = allExpenses.filter(exp => {
                     if (!exp.date) return false;
-                    const expDate = new Date(exp.date); // Menggunakan exp.date langsung
+                    const expDate = new Date(exp.date);
 
-                    // console.log(
-                    //     `Memfilter item: API Date='${exp.date}', Parsed Date=${expDate.toISOString()}, ` +
-                    //     `Item Year=${expDate.getUTCFullYear()} vs Target Year=${year}, ` +
-                    //     `Item Month=${expDate.getUTCMonth()} vs Target Month=${monthZeroIndexed}`
-                    // );
                     return expDate.getUTCFullYear() === year && expDate.getUTCMonth() === monthZeroIndexed;
                 });
                 return filteredExpenses;
@@ -272,19 +323,41 @@ spending patterns within the month.
             for (let i = 0; i < adjustedFirstDay; i++) calendarGrid.appendChild(document.createElement('div'));
 
             const expensesInCurrentMonth = await fetchExpensesForMonth(year, month);
+
+            // Dapatkan tanggal hari ini (tanpa komponen waktu)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Normalisasi ke awal hari
+
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayEl = document.createElement('button');
                 dayEl.textContent = day;
                 dayEl.className = 'calendar-day p-2 rounded-md aspect-square flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-sky-400';
                 const dateValue = new Date(year, month, day);
+                dateValue.setHours(0, 0, 0, 0); // Normalisasi dateValue untuk perbandingan yang akurat
+
+                // Cek apakah ini adalah hari ini
+                if (dateValue.getTime() === today.getTime()) {
+                    dayEl.classList.add('today-highlight');
+                }
 
                 if (dateValue < MIN_DATE || dateValue > MAX_DATE) {
                     dayEl.classList.add('disabled');
+                    // Jika hari ini di luar rentang, jangan tandai sebagai today-highlight
+                    if (dateValue.getTime() === today.getTime()) {
+                        dayEl.classList.remove('today-highlight'); // Hapus jika terlanjur ditambahkan
+                    }
                 } else {
                     dayEl.onclick = () => handleDateClick(dateValue);
                 }
-                if (selectedDate && dateValue.toDateString() === selectedDate.toDateString()) dayEl.classList.add('selected');
-                if (expensesInCurrentMonth.some(exp => exp.date === formatDateISO(dateValue))) dayEl.classList.add('has-expenses');
+
+                if (selectedDate && dateValue.toDateString() === selectedDate.toDateString()) {
+                    dayEl.classList.add('selected');
+                    // Jika hari ini juga terpilih, kelas 'selected' akan mengambil alih karena !important pada backgroundnya
+                }
+
+                if (expensesInCurrentMonth.some(exp => exp.date === formatDateISO(dateValue))) {
+                    dayEl.classList.add('has-expenses');
+                }
                 calendarGrid.appendChild(dayEl);
             }
             updateNavigationButtons();
@@ -304,6 +377,7 @@ spending patterns within the month.
             await renderCalendar();
             await renderExpensesForSelectedDate();
             if (expenseForm) expenseForm.reset();
+            if (expenseAmountInput) expenseAmountInput.value = ''; // Reset field jumlah juga
             if (expenseDescriptionInput) expenseDescriptionInput.focus();
         }
 
@@ -344,9 +418,11 @@ spending patterns within the month.
                 return;
             }
             const description = expenseDescriptionInput.value.trim();
-            const amount = parseFloat(expenseAmountInput.value);
+            // Dapatkan nilai angka murni dari input yang diformat
+            const amount = getUnformattedNumber(expenseAmountInput.value);
+
             if (!description || isNaN(amount) || amount <= 0) {
-                alert("Deskripsi dan jumlah pengeluaran harus valid.");
+                alert("Deskripsi dan jumlah pengeluaran harus valid. Jumlah harus lebih besar dari 0.");
                 return;
             }
             const newExpenseData = {
@@ -370,8 +446,9 @@ spending patterns within the month.
                     throw new Error(errorData.message || `Server error: ${response.status}`);
                 }
                 if (expenseForm) expenseForm.reset();
+                if (expenseAmountInput) expenseAmountInput.value = ''; // Kosongkan field jumlah setelah submit
                 await renderExpensesForSelectedDate();
-                await renderCalendar();
+                await renderCalendar(); // Untuk update dot 'has-expenses'
             } catch (error) {
                 console.error('Error adding expense (addExpense):', error);
                 alert(`Gagal menambahkan pengeluaran: ${error.message}`);
@@ -386,14 +463,14 @@ spending patterns within the month.
                         'Accept': 'application/json'
                     }
                 });
-                if (!response.ok && response.status !== 204) {
+                if (!response.ok && response.status !== 204) { // 204 No Content juga OK
                     const errorData = await response.json().catch(() => ({
                         message: "Gagal menghapus data."
                     }));
                     throw new Error(errorData.message || `Server error: ${response.status}`);
                 }
                 await renderExpensesForSelectedDate();
-                await renderCalendar();
+                await renderCalendar(); // Untuk update dot 'has-expenses'
             } catch (error) {
                 console.error('Error deleting expense (deleteExpenseAPI):', error);
                 alert(`Gagal menghapus pengeluaran: ${error.message}`);
@@ -402,7 +479,7 @@ spending patterns within the month.
 
         function addDeleteEventListeners() {
             document.querySelectorAll('.delete-expense-btn').forEach(button => {
-                const newButton = button.cloneNode(true);
+                const newButton = button.cloneNode(true); // Clone untuk menghindari multiple listeners
                 button.parentNode.replaceChild(newButton, button);
                 newButton.addEventListener('click', async (event) => {
                     const expenseId = event.target.dataset.id;
@@ -413,7 +490,6 @@ spending patterns within the month.
             });
         }
 
-        // Fungsi renderExpensesChart yang Anda berikan:
         async function renderExpensesChart() {
             if (!expensesChartCanvasCtx) {
                 console.warn("Canvas context untuk chart belum siap. Mencoba mengambil ulang.");
@@ -424,26 +500,29 @@ spending patterns within the month.
                     return;
                 }
             }
-            if (expensesChart) {
-                expensesChart.destroy();
-                expensesChart = null;
-            }
 
             if (!currentDate) {
                 console.warn("currentDate belum diinisialisasi untuk renderExpensesChart");
+                // Mungkin tampilkan chart kosong atau pesan
+                if (expensesChart) {
+                    expensesChart.destroy();
+                    expensesChart = null;
+                }
+                const chartElementContainer = document.querySelector('.chart-container');
+                if (chartElementContainer) chartElementContainer.style.display = 'none';
                 return;
             }
+
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
             const expensesInCurrentMonth = await fetchExpensesForMonth(year, month);
-            // Log data yang diterima untuk chart
-
 
             const dailyTotals = {};
             const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
+
             for (let i = 1; i <= daysInCurrentMonth; i++) {
-                // Hanya inisialisasi hari yang valid dalam rentang MIN_DATE dan MAX_DATE
                 const currentDayDate = new Date(year, month, i);
+                // Pastikan hari berada dalam rentang MIN_DATE dan MAX_DATE sebelum diinisialisasi
                 if (currentDayDate >= MIN_DATE && currentDayDate <= MAX_DATE) {
                     dailyTotals[i] = 0;
                 }
@@ -451,43 +530,40 @@ spending patterns within the month.
 
             expensesInCurrentMonth.forEach(exp => {
                 if (!exp.date) return;
-                const expDate = new Date(exp.date); // Gunakan exp.date langsung
-                const day = expDate.getUTCDate(); // Gunakan getUTCDate jika tanggal dari DB adalah UTC
-                if (dailyTotals.hasOwnProperty(day)) { // Pastikan hari ada di dailyTotals (sudah difilter MIN/MAX)
+                const expDate = new Date(exp.date);
+                const day = expDate.getUTCDate();
+                if (dailyTotals.hasOwnProperty(day)) {
                     dailyTotals[day] += Number(exp.amount);
                 }
             });
 
-            const labels = Object.keys(dailyTotals).sort((a, b) => parseInt(a) - parseInt(b));
-            const data = labels.map(day => dailyTotals[day]); // 'data' ini adalah variabel lokal
+            // Hanya ambil label dan data untuk hari-hari yang ada di dailyTotals (sudah difilter MIN/MAX)
+            const labels = Object.keys(dailyTotals).map(day => String(day)).sort((a, b) => parseInt(a) - parseInt(b));
+            const data = labels.map(day => dailyTotals[parseInt(day)]);
 
 
             const chartElementContainer = document.querySelector('.chart-container');
 
-            if (labels.length === 0 || data.every(val => val === 0)) { // Jika tidak ada label atau semua data nol
-                console.log("Tidak ada data yang signifikan untuk ditampilkan di chart.");
-                if (chartElementContainer) chartElementContainer.style.display = 'none';
-                if (expensesChart) {
-                    expensesChart.destroy();
-                    expensesChart = null;
-                }
-                return;
-            }
-            if (chartElementContainer) chartElementContainer.style.display = 'block';
-
-            // Hancurkan instance chart lama jika ada sebelum membuat yang baru
-            if (expensesChart) {
+            if (expensesChart) { // Selalu hancurkan chart lama jika ada
                 expensesChart.destroy();
                 expensesChart = null;
             }
 
+            if (labels.length === 0 || data.every(val => val === 0)) {
+                console.log("Tidak ada data yang signifikan untuk ditampilkan di chart bulan ini.");
+                if (chartElementContainer) chartElementContainer.style.display = 'none';
+                return;
+            }
+
+            if (chartElementContainer) chartElementContainer.style.display = 'block';
+
             expensesChart = new Chart(expensesChartCanvasCtx, {
                 type: 'bar',
                 data: {
-                    labels: labels, // Menggunakan variabel labels lokal
+                    labels: labels,
                     datasets: [{
                         label: 'Total Pengeluaran Harian (Rp)',
-                        data: data, // Menggunakan variabel data lokal
+                        data: data,
                         backgroundColor: 'rgba(16, 185, 129, 0.6)',
                         borderColor: 'rgba(5, 150, 105, 1)',
                         borderWidth: 1
@@ -508,7 +584,7 @@ spending patterns within the month.
                                 maxRotation: 0,
                                 minRotation: 0,
                                 autoSkip: true,
-                                maxTicksLimit: 15
+                                maxTicksLimit: 15 // Batasi jumlah tick pada sumbu X agar tidak terlalu padat
                             }
                         }
                     },
@@ -529,20 +605,27 @@ spending patterns within the month.
 
         async function initializeApp() {
             const today = new Date();
-            let initialDateToSelect = MIN_DATE;
+            let initialDateToSelect = MIN_DATE; // Default ke MIN_DATE
+
+            // Tentukan bulan saat ini untuk kalender
             if (today >= MIN_DATE && today <= MAX_DATE) {
-                currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                initialDateToSelect = today;
-            } else {
-                currentDate = new Date(MIN_DATE.getFullYear(), MIN_DATE.getMonth(), 1);
+                currentDate = new Date(today.getFullYear(), today.getMonth(), 1); // Bulan ini
+                initialDateToSelect = today; // Pilih tanggal hari ini
+            } else if (today < MIN_DATE) {
+                currentDate = new Date(MIN_DATE.getFullYear(), MIN_DATE.getMonth(), 1); // Bulan dari MIN_DATE
+                initialDateToSelect = MIN_DATE; // Pilih MIN_DATE
+            } else { // today > MAX_DATE
+                currentDate = new Date(MAX_DATE.getFullYear(), MAX_DATE.getMonth(), 1); // Bulan dari MAX_DATE
+                initialDateToSelect = MAX_DATE; // Pilih MAX_DATE (atau hari terakhir di bulan MAX_DATE)
             }
-            if (!currentDate) {
+
+            if (!currentDate) { // Fallback jika ada kondisi aneh
                 currentDate = new Date(MIN_DATE.getFullYear(), MIN_DATE.getMonth(), 1);
                 console.warn("currentDate diinisialisasi ke MIN_DATE karena kondisi awal tidak terpenuhi.");
             }
 
-            await renderCalendar();
-            await handleDateClick(initialDateToSelect);
+            await renderCalendar(); // Render kalender untuk bulan yang sudah ditentukan
+            await handleDateClick(initialDateToSelect); // Pilih tanggal dan render pengeluaran serta chart
         }
     </script>
 </body>
