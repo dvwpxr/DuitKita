@@ -158,7 +158,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = "{{ url('/api') }}";
+        const API_BASE_URL = 'http://note-money.vercel.app'; // Ganti dengan URL API Anda
 
         let calendarGrid, currentMonthYearEl, prevMonthBtn, nextMonthBtn,
             expenseForm, expenseDescriptionInput, expenseAmountInput,
