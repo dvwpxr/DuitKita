@@ -158,7 +158,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'http://note-money.vercel.app'; // Ganti dengan URL API Anda
+        const API_BASE_URL = "{{ url('/api') }}"; // Ganti dengan URL API Anda
 
         let calendarGrid, currentMonthYearEl, prevMonthBtn, nextMonthBtn,
             expenseForm, expenseDescriptionInput, expenseAmountInput,
@@ -412,48 +412,91 @@
         }
 
         async function addExpense(e) {
+
             e.preventDefault();
+
             if (!selectedDate) {
+
                 alert("Silakan pilih tanggal terlebih dahulu.");
+
                 return;
+
             }
+
             const description = expenseDescriptionInput.value.trim();
+
             // Dapatkan nilai angka murni dari input yang diformat
+
             const amount = getUnformattedNumber(expenseAmountInput.value);
 
+
             if (!description || isNaN(amount) || amount <= 0) {
+
                 alert("Deskripsi dan jumlah pengeluaran harus valid. Jumlah harus lebih besar dari 0.");
+
                 return;
+
             }
+
             const newExpenseData = {
+
                 date: formatDateISO(selectedDate),
+
                 description,
+
                 amount
+
             };
+
             try {
+
                 const response = await fetch(`${API_BASE_URL}/expenses`, {
+
                     method: 'POST',
+
                     headers: {
+
                         'Content-Type': 'application/json',
+
                         'Accept': 'application/json'
+
                     },
+
                     body: JSON.stringify(newExpenseData)
+
                 });
+
                 if (!response.ok) {
+
                     const errorData = await response.json().catch(() => ({
+
                         message: "Gagal menyimpan data."
+
                     }));
+
                     throw new Error(errorData.message || `Server error: ${response.status}`);
+
                 }
+
                 if (expenseForm) expenseForm.reset();
+
                 if (expenseAmountInput) expenseAmountInput.value = ''; // Kosongkan field jumlah setelah submit
+
                 await renderExpensesForSelectedDate();
+
                 await renderCalendar(); // Untuk update dot 'has-expenses'
+
             } catch (error) {
+
                 console.error('Error adding expense (addExpense):', error);
+
                 alert(`Gagal menambahkan pengeluaran: ${error.message}`);
+
             }
+
         }
+
+
 
         async function deleteExpenseAPI(expenseId) {
             try {
