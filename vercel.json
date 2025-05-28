@@ -4,14 +4,19 @@
     "functions": {
         "api/index.php": { "runtime": "vercel-php@0.7.3" }
     },
-    "routes": [{ "src": "/(.*)", "dest": "/api/index.php" }],
+    "routes": [
+        { "src": "/api/expenses/(.*)", "dest": "/app/Http/Controllers/Api" },
+        { "src": "/api/expenses", "dest": "/app/Http/Controllers/Api" },
+        { "src": "/api/expenses/(.*)", "dest": "/app/Http/Controllers/Api" },
+        { "src": "/(.*)", "dest": "/api/index.php" }
+    ],
     "public": true,
-    "buildCommand": "php artisan config:clear && php artisan route:clear && php artisan view:clear && vite build",
+    "buildCommand": "vite build",
     "outputDirectory": "public",
     "env": {
         "APP_ENV": "production",
-        "APP_DEBUG": "true",
-        "APP_URL": "https://dawdaw123123.vercel.app",
+        "APP_DEBUG": "false",
+        "APP_URL": "https://moneymanagerurl.com",
         "APP_KEY": "base64:TGaVaXwhWgjn9akhE4SCSIjGG/cQqvICUQ+PgLA3Bs0=",
         "APP_CONFIG_CACHE": "/tmp/config.php",
         "APP_EVENTS_CACHE": "/tmp/events.php",
