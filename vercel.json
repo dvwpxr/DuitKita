@@ -1,36 +1,50 @@
 {
     "version": 2,
-    "framework": null,
-    "functions": {
-        "api/index.php": { "runtime": "vercel-php@0.7.3" }
-    },
-    "routes": [
-        { "src": "/api/expenses/(.*)", "dest": "/app/Http/Controllers/Api" },
-        { "src": "/api/expenses", "dest": "/app/Http/Controllers/Api" },
-        { "src": "/api/expenses/(.*)", "dest": "/app/Http/Controllers/Api" },
-        { "src": "/(.*)", "dest": "/api/index.php" }
+    "framework": "laravel",
+    "builds": [
+        {
+            "src": "public/index.php",
+            "use": "@vercel/php",
+            "config": {
+                "includeFiles": [
+                    ".env.production",
+                    "app/**",
+                    "bootstrap/**",
+                    "config/**",
+                    "database/migrations/**",
+                    "resources/views/**",
+                    "resources/lang/**",
+                    "routes/**",
+                    "storage/framework/views/**",
+                    "vendor/**",
+                    "artisan"
+                ]
+            }
+        }
     ],
-    "public": true,
-    "buildCommand": "vite build",
-    "outputDirectory": "public",
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "/public/index.php"
+        }
+    ],
     "env": {
         "APP_ENV": "production",
         "APP_DEBUG": "false",
-        "APP_URL": "https://moneymanagerurl.com",
-        "APP_KEY": "base64:TGaVaXwhWgjn9akhE4SCSIjGG/cQqvICUQ+PgLA3Bs0=",
-        "APP_CONFIG_CACHE": "/tmp/config.php",
-        "APP_EVENTS_CACHE": "/tmp/events.php",
-        "APP_PACKAGES_CACHE": "/tmp/packages.php",
-        "APP_ROUTES_CACHE": "/tmp/routes.php",
-        "APP_SERVICES_CACHE": "/tmp/services.php",
-        "VIEW_COMPILED_PATH": "/tmp",
-        "CACHE_DRIVER": "array",
-        "LOG_CHANNEL": "stderr",
-        "SESSION_DRIVER": "cookie",
-        "DB_CONNECTION": "mysql",
+        "APP_URL": "https://money-vc.vercel.app",
+        "APP_KEY": "base64:MCt6O2tnGm6jXzfcErXYFN0JIOvvD8lrFzzupKO0BI8=",
+        "DB_CONNECTION": "pgsql",
         "DB_HOST": "mysql-moneymanager-student-esaunggul.l.aivencloud.com",
         "DB_PORT": "11781",
         "DB_DATABASE": "defaultdb",
-        "DB_USERNAME": "avnadmin"
-    }
+        "DB_USERNAME": "avnadmin",
+        "DB_PASSWORD": "AVNS_XgeRPfsi8B8s5Vd8VfQ",
+        "LOG_CHANNEL": "stderr",
+        "SESSION_DRIVER": "cookie",
+        "CACHE_DRIVER": "array",
+        "VIEW_COMPILED_PATH": "/tmp/views",
+        "SSR_TEMP_PATH": "/tmp/ssr",
+        "NODE_PATH": "node"
+    },
+    "outputDirectory": "public"
 }
