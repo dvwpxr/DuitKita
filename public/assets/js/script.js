@@ -1,26 +1,22 @@
-const calendarGrid = document.getElementById("calendarGrid");
-const currentMonthYearEl = document.getElementById("currentMonthYear");
-const prevMonthBtn = document.getElementById("prevMonthBtn");
-const nextMonthBtn = document.getElementById("nextMonthBtn");
-const expenseForm = document.getElementById("expenseForm");
-const expenseDescriptionInput = document.getElementById("expenseDescription");
-const expenseAmountInput = document.getElementById("expenseAmount");
-const expenseListEl = document.getElementById("expenseList");
-const selectedDateDisplay = document.getElementById("selectedDateDisplay");
-const noExpensesMessage = document.getElementById("noExpensesMessage");
-const dailyTotalEl = document.getElementById("dailyTotal");
-const expensesChartCanvas = document
-    .getElementById("expensesChart")
-    .getContext("2d");
+let calendarGrid,
+    currentMonthYearEl,
+    prevMonthBtn,
+    nextMonthBtn,
+    expenseForm,
+    expenseDescriptionInput,
+    expenseAmountInput,
+    expenseListEl,
+    selectedDateDisplay,
+    noExpensesMessage,
+    dailyTotalEl,
+    expensesChartCanvasCtx;
 
 let expensesChart;
-let expensesData = [];
-let currentDate = new Date(2025, 4, 21);
+let currentDate;
 let selectedDate = null;
 
-const MIN_DATE = new Date(2025, 4, 21);
+const MIN_DATE = new Date(2025, 4, 1); // Anggap Mei dimulai dari tanggal 1
 const MAX_DATE = new Date(2025, 11, 31);
-
 const monthNames = [
     "Januari",
     "Februari",
@@ -35,6 +31,87 @@ const monthNames = [
     "November",
     "Desember",
 ];
+
+// Fungsi untuk memformat angka ke format ribuan Indonesia
+function formatNumberInput(value) {
+    if (!value) return "";
+    // Hapus semua karakter non-digit kecuali jika itu adalah input awal yang kosong
+    let numStr = String(value).replace(/[^\d]/g, "");
+    if (numStr === "") return "";
+    return parseInt(numStr, 10).toLocaleString("id-ID");
+}
+
+// Fungsi untuk mendapatkan nilai angka murni dari input yang terformat
+function getUnformattedNumber(formattedValue) {
+    if (!formattedValue) return 0;
+    return parseInt(String(formattedValue).replace(/\./g, ""), 10) || 0;
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    calendarGrid = document.getElementById("calendarGrid");
+    currentMonthYearEl = document.getElementById("currentMonthYear");
+    prevMonthBtn = document.getElementById("prevMonthBtn");
+    nextMonthBtn = document.getElementById("nextMonthBtn");
+    expenseForm = document.getElementById("expenseForm");
+    expenseDescriptionInput = document.getElementById("expenseDescription");
+    expenseAmountInput = document.getElementById("expenseAmount");
+    expenseListEl = document.getElementById("expenseList");
+    selectedDateDisplay = document.getElementById("selectedDateDisplay");
+    noExpensesMessage = document.getElementById("noExpensesMessage");
+    dailyTotalEl = document.getElementById("dailyTotal");
+
+    const canvasElement = document.getElementById("expensesChart");
+    if (canvasElement) {
+        expensesChartCanvasCtx = canvasElement.getContext("2d");
+    } else {
+        console.error(
+            "Elemen canvas 'expensesChart' tidak ditemukan saat DOMContentLoaded."
+        );
+    }
+
+    if (expenseForm) expenseForm.addEventListener("submit", addExpense);
+    if (prevMonthBtn)
+        prevMonthBtn.onclick = async () => {
+            if (!currentDate) return;
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            await renderCalendar();
+            await renderExpensesChart();
+        };
+    if (nextMonthBtn)
+        nextMonthBtn.onclick = async () => {
+            if (!currentDate) return;
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            await renderCalendar();
+            await renderExpensesChart();
+        };
+
+    // Event listener untuk formatting input jumlah
+    if (expenseAmountInput) {
+        expenseAmountInput.addEventListener("input", function (e) {
+            const originalValue = e.target.value;
+            const formattedValue = formatNumberInput(originalValue);
+            // Untuk menjaga posisi kursor, ini bisa jadi rumit.
+            // Untuk simplisitas, kita set value saja.
+            // Jika string berubah, browser biasanya meletakkan kursor di akhir.
+            if (originalValue !== formattedValue) {
+                e.target.value = formattedValue;
+            }
+        });
+        // Mencegah input non-numerik jika diperlukan (selain yang sudah dihandle formatNumberInput)
+        expenseAmountInput.addEventListener("keypress", function (e) {
+            if (
+                e.key.length === 1 &&
+                (e.key < "0" || e.key > "9") &&
+                e.key !== "." &&
+                e.key !== ","
+            ) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    initializeApp();
+});
 
 function formatDate(date) {
     if (!date) return "";
@@ -51,16 +128,69 @@ function formatDateISO(date) {
     return `${year}-${month}-${day}`;
 }
 
-function renderCalendar() {
+async function fetchExpensesForDate(isoDate) {
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/expenses?date=${isoDate}`
+        );
+        if (!response.ok) {
+            console.error(
+                "API Error (fetchExpensesForDate):",
+                response.status,
+                await response.text().catch(() => "")
+            );
+            return [];
+        }
+        return await response.json();
+    } catch (error) {
+        console.error("Fetch error for date (fetchExpensesForDate):", error);
+        return [];
+    }
+}
+
+async function fetchExpensesForMonth(year, monthZeroIndexed) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/expenses`);
+        if (!response.ok) {
+            console.error(
+                "API Error (fetchExpensesForMonth):",
+                response.status,
+                await response.text().catch(() => "")
+            );
+            return [];
+        }
+        const allExpenses = await response.json();
+
+        const filteredExpenses = allExpenses.filter((exp) => {
+            if (!exp.date) return false;
+            const expDate = new Date(exp.date);
+
+            return (
+                expDate.getUTCFullYear() === year &&
+                expDate.getUTCMonth() === monthZeroIndexed
+            );
+        });
+        return filteredExpenses;
+    } catch (error) {
+        console.error("Fetch error for month (fetchExpensesForMonth):", error);
+        return [];
+    }
+}
+
+async function renderCalendar() {
+    if (!calendarGrid || !currentMonthYearEl || !currentDate) {
+        console.warn(
+            "Elemen kalender atau currentDate tidak siap untuk renderCalendar"
+        );
+        return;
+    }
     calendarGrid.innerHTML = "";
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-
     currentMonthYearEl.textContent = `${monthNames[month]} ${year}`;
 
     const firstDayOfMonth = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-
     const dayHeaders = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
     dayHeaders.forEach((header) => {
         const headerEl = document.createElement("div");
@@ -70,10 +200,14 @@ function renderCalendar() {
     });
 
     let adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-
-    for (let i = 0; i < adjustedFirstDay; i++) {
+    for (let i = 0; i < adjustedFirstDay; i++)
         calendarGrid.appendChild(document.createElement("div"));
-    }
+
+    const expensesInCurrentMonth = await fetchExpensesForMonth(year, month);
+
+    // Dapatkan tanggal hari ini (tanpa komponen waktu)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalisasi ke awal hari
 
     for (let day = 1; day <= daysInMonth; day++) {
         const dayEl = document.createElement("button");
@@ -81,9 +215,19 @@ function renderCalendar() {
         dayEl.className =
             "calendar-day p-2 rounded-md aspect-square flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-sky-400";
         const dateValue = new Date(year, month, day);
+        dateValue.setHours(0, 0, 0, 0); // Normalisasi dateValue untuk perbandingan yang akurat
+
+        // Cek apakah ini adalah hari ini
+        if (dateValue.getTime() === today.getTime()) {
+            dayEl.classList.add("today-highlight");
+        }
 
         if (dateValue < MIN_DATE || dateValue > MAX_DATE) {
             dayEl.classList.add("disabled");
+            // Jika hari ini di luar rentang, jangan tandai sebagai today-highlight
+            if (dateValue.getTime() === today.getTime()) {
+                dayEl.classList.remove("today-highlight"); // Hapus jika terlanjur ditambahkan
+            }
         } else {
             dayEl.onclick = () => handleDateClick(dateValue);
         }
@@ -93,10 +237,14 @@ function renderCalendar() {
             dateValue.toDateString() === selectedDate.toDateString()
         ) {
             dayEl.classList.add("selected");
+            // Jika hari ini juga terpilih, kelas 'selected' akan mengambil alih karena !important pada backgroundnya
         }
 
-        const isoDate = formatDateISO(dateValue);
-        if (expensesData.some((exp) => exp.date === isoDate)) {
+        if (
+            expensesInCurrentMonth.some(
+                (exp) => exp.date === formatDateISO(dateValue)
+            )
+        ) {
             dayEl.classList.add("has-expenses");
         }
         calendarGrid.appendChild(dayEl);
@@ -105,48 +253,52 @@ function renderCalendar() {
 }
 
 function updateNavigationButtons() {
-    const prevMonth = new Date(
+    if (!prevMonthBtn || !nextMonthBtn || !currentDate) return;
+    const prevMonthTest = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth() - 1,
         1
     );
-    const nextMonth = new Date(
+    const nextMonthTest = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth() + 1,
         1
     );
-
     prevMonthBtn.disabled =
-        prevMonth.getFullYear() < MIN_DATE.getFullYear() ||
-        (prevMonth.getFullYear() === MIN_DATE.getFullYear() &&
-            prevMonth.getMonth() < MIN_DATE.getMonth());
-
+        prevMonthTest.getFullYear() < MIN_DATE.getFullYear() ||
+        (prevMonthTest.getFullYear() === MIN_DATE.getFullYear() &&
+            prevMonthTest.getMonth() < MIN_DATE.getMonth());
     nextMonthBtn.disabled =
-        nextMonth.getFullYear() > MAX_DATE.getFullYear() ||
-        (nextMonth.getFullYear() === MAX_DATE.getFullYear() &&
-            nextMonth.getMonth() > MAX_DATE.getMonth());
+        nextMonthTest.getFullYear() > MAX_DATE.getFullYear() ||
+        (nextMonthTest.getFullYear() === MAX_DATE.getFullYear() &&
+            nextMonthTest.getMonth() > MAX_DATE.getMonth());
 }
 
-function handleDateClick(date) {
+async function handleDateClick(date) {
     selectedDate = date;
-    selectedDateDisplay.textContent = formatDate(selectedDate);
-    renderCalendar();
-    renderExpensesForSelectedDate();
-    expenseForm.reset();
-    expenseDescriptionInput.focus();
+    if (selectedDateDisplay)
+        selectedDateDisplay.textContent = formatDate(selectedDate);
+    await renderCalendar();
+    await renderExpensesForSelectedDate();
+    if (expenseForm) expenseForm.reset();
+    if (expenseAmountInput) expenseAmountInput.value = ""; // Reset field jumlah juga
+    if (expenseDescriptionInput) expenseDescriptionInput.focus();
 }
 
-function renderExpensesForSelectedDate() {
+async function renderExpensesForSelectedDate() {
+    if (!expenseListEl || !noExpensesMessage || !dailyTotalEl) return;
     expenseListEl.innerHTML = "";
     if (!selectedDate) {
         noExpensesMessage.style.display = "block";
         dailyTotalEl.textContent = "Rp 0";
+        if (expensesChart) {
+            expensesChart.destroy();
+            expensesChart = null;
+        }
         return;
     }
-
     const isoDateStr = formatDateISO(selectedDate);
-    const dayExpenses = expensesData.filter((exp) => exp.date === isoDateStr);
-
+    const dayExpenses = await fetchExpensesForDate(isoDateStr);
     if (dayExpenses.length === 0) {
         noExpensesMessage.style.display = "block";
     } else {
@@ -155,113 +307,235 @@ function renderExpensesForSelectedDate() {
             const li = document.createElement("li");
             li.className =
                 "flex justify-between items-center p-2 bg-white rounded shadow-sm";
-            li.innerHTML = `
-                        <span>${exp.description}</span>
-                        <div class="flex items-center">
-                            <span class="mr-3 text-emerald-700 font-medium">Rp ${exp.amount.toLocaleString(
-                                "id-ID"
-                            )}</span>
-                            <button data-id="${
-                                exp.id
-                            }" class="delete-expense-btn text-red-500 hover:text-red-700 text-xs p-1">Hapus</button>
-                        </div>
-                    `;
+            li.innerHTML = `<span>${
+                exp.description
+            }</span><div class="flex items-center"><span class="mr-3 text-semi-bold text-green-600 font-medium">Rp ${Number(
+                exp.amount
+            ).toLocaleString("id-ID")}</span><button data-id="${
+                exp.id
+            }" class="delete-expense-btn text-red-500 hover:text-red-700 text-xs p-1">Hapus</button></div>`;
             expenseListEl.appendChild(li);
         });
     }
-
-    const dailyTotal = dayExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    dailyTotalEl.textContent = `Rp ${dailyTotal.toLocaleString("id-ID")}`;
+    dailyTotalEl.textContent = `Rp ${dayExpenses
+        .reduce((sum, exp) => sum + Number(exp.amount), 0)
+        .toLocaleString("id-ID")}`;
     addDeleteEventListeners();
-    renderExpensesChart();
+    await renderExpensesChart();
 }
 
-function addExpense(e) {
+async function addExpense(e) {
     e.preventDefault();
+
     if (!selectedDate) {
         alert("Silakan pilih tanggal terlebih dahulu.");
+
         return;
     }
+
     const description = expenseDescriptionInput.value.trim();
-    const amount = parseFloat(expenseAmountInput.value);
+
+    // Dapatkan nilai angka murni dari input yang diformat
+
+    const amount = getUnformattedNumber(expenseAmountInput.value);
 
     if (!description || isNaN(amount) || amount <= 0) {
-        alert("Deskripsi dan jumlah pengeluaran harus valid.");
+        alert(
+            "Deskripsi dan jumlah pengeluaran harus valid. Jumlah harus lebih besar dari 0."
+        );
+
         return;
     }
 
-    const newExpense = {
-        id: Date.now().toString(),
+    const newExpenseData = {
         date: formatDateISO(selectedDate),
-        description: description,
-        amount: amount,
+
+        description,
+
+        amount,
     };
-    expensesData.push(newExpense);
-    expenseForm.reset();
-    renderExpensesForSelectedDate();
-    renderCalendar();
+
+    try {
+        const csrfToken = document
+            .querySelector('meta[name="csrf-token"]')
+            .getAttribute("content"); // Ambil token
+        const response = await fetch(`${API_BASE_URL}/expenses`, {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+
+            body: JSON.stringify(newExpenseData),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({
+                message: "Gagal menyimpan data.",
+            }));
+
+            throw new Error(
+                errorData.message || `Server error: ${response.status}`
+            );
+        }
+
+        if (expenseForm) expenseForm.reset();
+
+        if (expenseAmountInput) expenseAmountInput.value = ""; // Kosongkan field jumlah setelah submit
+
+        await renderExpensesForSelectedDate();
+
+        await renderCalendar(); // Untuk update dot 'has-expenses'
+    } catch (error) {
+        console.error("Error adding expense (addExpense):", error);
+
+        alert(`Gagal menambahkan pengeluaran: ${error.message}`);
+    }
 }
 
-function deleteExpense(expenseId) {
-    expensesData = expensesData.filter((exp) => exp.id !== expenseId);
-    renderExpensesForSelectedDate();
-    renderCalendar();
+async function deleteExpenseAPI(expenseId) {
+    // expenseId adalah nilai, bukan string "{expenseId}"
+    try {
+        // Pastikan Anda menggunakan backtick (`) untuk template literal
+        // dan ${API_BASE_URL} serta ${expenseId} untuk menyisipkan nilai variabel.
+        const response = await fetch(
+            `${API_BASE_URL}/expenses` + `/${expenseId}`,
+            {
+                // PERHATIKAN BAGIAN INI
+                method: "DELETE",
+                headers: {
+                    Accept: "application/json",
+                    "X-CSRF-TOKEN": document
+                        .querySelector('meta[name="csrf-token"]')
+                        .getAttribute("content"),
+                },
+            }
+        );
+
+        if (!response.ok && response.status !== 204) {
+            // 204 No Content juga OK
+            const errorData = await response.json().catch(() => ({
+                message:
+                    "Gagal menghapus data atau respons server tidak valid.",
+            }));
+            // Tampilkan pesan error ke pengguna (misalnya via alert atau notifikasi UI yang lebih baik)
+            alert(
+                `Gagal menghapus pengeluaran: ${
+                    errorData.message || `Status ${response.status}`
+                }`
+            );
+            throw new Error(
+                errorData.message || `Server error: ${response.status}`
+            );
+        }
+        // Jika berhasil
+        await renderExpensesForSelectedDate(); // Muat ulang daftar pengeluaran untuk tanggal yang dipilih
+        await renderCalendar(); // Muat ulang kalender untuk update dot 'has-expenses'
+    } catch (error) {
+        console.error("Error deleting expense (deleteExpenseAPI):", error);
+        // Anda mungkin ingin menampilkan pesan error ini ke pengguna juga jika belum ditangani di atas
+        if (!alertShown) {
+            // Hindari alert ganda jika sudah ditangani di atas
+            alert(`Terjadi kesalahan saat menghapus: ${error.message}`);
+        }
+    }
 }
 
 function addDeleteEventListeners() {
     document.querySelectorAll(".delete-expense-btn").forEach((button) => {
-        button.removeEventListener("click", handleDeleteClick);
-        button.addEventListener("click", handleDeleteClick);
+        const newButton = button.cloneNode(true); // Clone untuk menghindari multiple listeners
+        button.parentNode.replaceChild(newButton, button);
+        newButton.addEventListener("click", async (event) => {
+            const expenseId = event.target.dataset.id;
+            if (confirm("Apakah Anda yakin ingin menghapus pengeluaran ini?")) {
+                await deleteExpenseAPI(expenseId);
+            }
+        });
     });
 }
 
-function handleDeleteClick(event) {
-    const expenseId = event.target.dataset.id;
-    if (confirm("Apakah Anda yakin ingin menghapus pengeluaran ini?")) {
-        deleteExpense(expenseId);
+async function renderExpensesChart() {
+    if (!expensesChartCanvasCtx) {
+        console.warn(
+            "Canvas context untuk chart belum siap. Mencoba mengambil ulang."
+        );
+        const canvasElement = document.getElementById("expensesChart");
+        if (canvasElement)
+            expensesChartCanvasCtx = canvasElement.getContext("2d");
+        else {
+            console.error("Elemen canvas tidak ditemukan untuk chart.");
+            return;
+        }
     }
-}
 
-function renderExpensesChart() {
-    if (expensesChart) {
-        expensesChart.destroy();
+    if (!currentDate) {
+        console.warn(
+            "currentDate belum diinisialisasi untuk renderExpensesChart"
+        );
+        // Mungkin tampilkan chart kosong atau pesan
+        if (expensesChart) {
+            expensesChart.destroy();
+            expensesChart = null;
+        }
+        const chartElementContainer =
+            document.querySelector(".chart-container");
+        if (chartElementContainer) chartElementContainer.style.display = "none";
+        return;
     }
 
-    const currentMonthExpenses = {};
-    const daysInCurrentMonth = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1,
-        0
-    ).getDate();
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const expensesInCurrentMonth = await fetchExpensesForMonth(year, month);
+
+    const dailyTotals = {};
+    const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
 
     for (let i = 1; i <= daysInCurrentMonth; i++) {
-        const date = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth(),
-            i
-        );
-        if (date >= MIN_DATE && date <= MAX_DATE) {
-            currentMonthExpenses[i] = 0;
+        const currentDayDate = new Date(year, month, i);
+        // Pastikan hari berada dalam rentang MIN_DATE dan MAX_DATE sebelum diinisialisasi
+        if (currentDayDate >= MIN_DATE && currentDayDate <= MAX_DATE) {
+            dailyTotals[i] = 0;
         }
     }
 
-    expensesData.forEach((exp) => {
-        const expenseDate = new Date(exp.date + "T00:00:00"); // Ensure correct date parsing
-        if (
-            expenseDate.getFullYear() === currentDate.getFullYear() &&
-            expenseDate.getMonth() === currentDate.getMonth()
-        ) {
-            const day = expenseDate.getDate();
-            if (currentMonthExpenses.hasOwnProperty(day)) {
-                currentMonthExpenses[day] += exp.amount;
-            }
+    expensesInCurrentMonth.forEach((exp) => {
+        if (!exp.date) return;
+        const expDate = new Date(exp.date);
+        const day = expDate.getUTCDate();
+        if (dailyTotals.hasOwnProperty(day)) {
+            dailyTotals[day] += Number(exp.amount);
         }
     });
 
-    const labels = Object.keys(currentMonthExpenses).sort((a, b) => a - b);
-    const data = labels.map((day) => currentMonthExpenses[day]);
+    // Hanya ambil label dan data untuk hari-hari yang ada di dailyTotals (sudah difilter MIN/MAX)
+    const labels = Object.keys(dailyTotals)
+        .map((day) => String(day))
+        .sort((a, b) => parseInt(a) - parseInt(b));
+    const data = labels.map((day) => dailyTotals[parseInt(day)]);
 
-    expensesChart = new Chart(expensesChartCanvas, {
+    const chartElementContainer = document.querySelector(".chart-container");
+
+    if (expensesChart) {
+        // Selalu hancurkan chart lama jika ada
+        expensesChart.destroy();
+        expensesChart = null;
+    }
+
+    if (labels.length === 0 || data.every((val) => val === 0)) {
+        console.log(
+            "Tidak ada data yang signifikan untuk ditampilkan di chart bulan ini."
+        );
+        if (chartElementContainer) chartElementContainer.style.display = "none";
+        return;
+    }
+
+    if (chartElementContainer) chartElementContainer.style.display = "block";
+
+    expensesChart = new Chart(expensesChartCanvasCtx, {
         type: "bar",
         data: {
             labels: labels,
@@ -269,8 +543,8 @@ function renderExpensesChart() {
                 {
                     label: "Total Pengeluaran Harian (Rp)",
                     data: data,
-                    backgroundColor: "rgba(16, 185, 129, 0.6)", // emerald-500 with opacity
-                    borderColor: "rgba(5, 150, 105, 1)", // emerald-600
+                    backgroundColor: "rgba(16, 185, 129, 0.6)",
+                    borderColor: "rgba(5, 150, 105, 1)",
                     borderWidth: 1,
                 },
             ],
@@ -282,9 +556,8 @@ function renderExpensesChart() {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: function (value) {
-                            return "Rp " + value.toLocaleString("id-ID");
-                        },
+                        callback: (value) =>
+                            "Rp " + value.toLocaleString("id-ID"),
                     },
                 },
                 x: {
@@ -292,25 +565,17 @@ function renderExpensesChart() {
                         maxRotation: 0,
                         minRotation: 0,
                         autoSkip: true,
-                        maxTicksLimit: 15,
+                        maxTicksLimit: 15, // Batasi jumlah tick pada sumbu X agar tidak terlalu padat
                     },
                 },
             },
             plugins: {
                 tooltip: {
                     callbacks: {
-                        label: function (context) {
-                            let label = context.dataset.label || "";
-                            if (label) {
-                                label += ": ";
-                            }
-                            if (context.parsed.y !== null) {
-                                label +=
-                                    "Rp " +
-                                    context.parsed.y.toLocaleString("id-ID");
-                            }
-                            return label;
-                        },
+                        label: (context) =>
+                            (context.dataset.label || "") +
+                            ": Rp " +
+                            context.parsed.y.toLocaleString("id-ID"),
                     },
                 },
                 legend: {
@@ -322,31 +587,31 @@ function renderExpensesChart() {
     });
 }
 
-prevMonthBtn.onclick = () => {
-    currentDate.setMonth(currentDate.getMonth() - 1);
-    renderCalendar();
-    renderExpensesChart();
-};
-
-nextMonthBtn.onclick = () => {
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    renderCalendar();
-    renderExpensesChart();
-};
-
-expenseForm.addEventListener("submit", addExpense);
-
-function initializeApp() {
+async function initializeApp() {
     const today = new Date();
-    if (today >= MIN_DATE && today <= MAX_DATE) {
-        currentDate = new Date(today.getFullYear(), today.getMonth(), 1); // Start with the first day of current month
-        handleDateClick(today); // Select today by default
-    } else {
-        currentDate = new Date(MIN_DATE.getFullYear(), MIN_DATE.getMonth(), 1);
-        handleDateClick(MIN_DATE); // Or select MIN_DATE if today is out of range
-    }
-    renderCalendar();
-    renderExpensesChart();
-}
+    let initialDateToSelect = MIN_DATE; // Default ke MIN_DATE
 
-initializeApp();
+    // Tentukan bulan saat ini untuk kalender
+    if (today >= MIN_DATE && today <= MAX_DATE) {
+        currentDate = new Date(today.getFullYear(), today.getMonth(), 1); // Bulan ini
+        initialDateToSelect = today; // Pilih tanggal hari ini
+    } else if (today < MIN_DATE) {
+        currentDate = new Date(MIN_DATE.getFullYear(), MIN_DATE.getMonth(), 1); // Bulan dari MIN_DATE
+        initialDateToSelect = MIN_DATE; // Pilih MIN_DATE
+    } else {
+        // today > MAX_DATE
+        currentDate = new Date(MAX_DATE.getFullYear(), MAX_DATE.getMonth(), 1); // Bulan dari MAX_DATE
+        initialDateToSelect = MAX_DATE; // Pilih MAX_DATE (atau hari terakhir di bulan MAX_DATE)
+    }
+
+    if (!currentDate) {
+        // Fallback jika ada kondisi aneh
+        currentDate = new Date(MIN_DATE.getFullYear(), MIN_DATE.getMonth(), 1);
+        console.warn(
+            "currentDate diinisialisasi ke MIN_DATE karena kondisi awal tidak terpenuhi."
+        );
+    }
+
+    await renderCalendar(); // Render kalender untuk bulan yang sudah ditentukan
+    await handleDateClick(initialDateToSelect); // Pilih tanggal dan render pengeluaran serta chart
+}

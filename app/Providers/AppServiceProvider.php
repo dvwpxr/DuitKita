@@ -2,8 +2,9 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\App; // Tambahkan ini di atas
 use Illuminate\Support\ServiceProvider;
+use Kreait\Firebase\Factory;
+use Kreait\Firebase\Auth as FirebaseAuth; // Import FirebaseAuth
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -12,14 +13,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        if (env('VERCEL_ENV')) { // VERCEL_ENV adalah variabel sistem yang diset oleh Vercel
-            // Mengarahkan path penyimpanan sementara ke direktori /tmp yang writable di Vercel
-            $this->app->useStoragePath(env('VERCEL_STORAGE_PATH', '/tmp'));
+        // ... (registrasi lainnya) ...
 
-            // Pastikan direktori untuk view yang dikompilasi bisa ditulis
-            // Anda sudah mengatur VIEW_COMPILED_PATH di vercel.json, tapi ini bisa jadi tambahan
-            config(['view.compiled' => env('VIEW_COMPILED_PATH', '/tmp/views')]);
-        }
+        $this->app->singleton(FirebaseAuth::class, function ($app) {
+            $credentialsPath = env('FIREBASE_CREDENTIALS');
+            if (!$credentialsPath || !file_exists(base_path($credentialsPath))) {
+                throw new \InvalidArgumentException('Firebase credentials file not found. Set FIREBASE_CREDENTIALS in .env');
+            }
+
+            $factory = (new Factory)
+                ->withServiceAccount(base_path($credentialsPath));
+            return $factory->createAuth();
+        });
     }
 
     /**

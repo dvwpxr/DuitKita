@@ -1,0 +1,88 @@
+/* assets/css/style.css */
+
+body {
+    font-family: "Poppins", sans-serif; /* Menggunakan Google Font Poppins */
+}
+
+/* Sesuaikan warna jika diperlukan, atau biarkan Tailwind yang mengatur */
+.calendar-day:hover:not(.selected):not(.disabled) {
+    background-color: #ffe4e6; /* Warna hover yang lebih lembut (misalnya, rose-100) */
+}
+
+.selected {
+    background-color: #f43f5e !important; /* Warna utama (misalnya, rose-500) */
+    color: white !important;
+    /* box-shadow: 0 0 0 2px white, 0 0 0 4px #f43f5e; /* Efek ring jika diinginkan */
+}
+
+/* Gaya untuk daftar pengeluaran dengan scrollbar yang lebih manis (opsional) */
+#expenseList::-webkit-scrollbar {
+    width: 6px;
+}
+#expenseList::-webkit-scrollbar-track {
+    background: #f8fafc; /* bg-slate-50 */
+    border-radius: 10px;
+}
+#expenseList::-webkit-scrollbar-thumb {
+    background: #fda4af; /* bg-rose-300 */
+    border-radius: 10px;
+}
+#expenseList::-webkit-scrollbar-thumb:hover {
+    background: #f43f5e; /* bg-rose-500 */
+}
+
+/* Contoh gaya untuk tombol hapus yang lebih halus */
+.delete-expense-btn {
+    background-color: transparent;
+    border: 1px solid #fecdd3; /* rose-200 */
+    color: #e11d48; /* rose-600 */
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem; /* text-xs */
+    transition: all 0.15s ease-in-out;
+}
+.delete-expense-btn:hover {
+    background-color: #fecdd3; /* rose-200 */
+    color: #9f1239; /* rose-800 */
+}
+
+.today-highlight {
+    background-color: #ffedd5; /* orange-100 */
+    color: #c2410c; /* orange-700 */
+    font-weight: bold;
+    border: 1px solid #fb923c; /* orange-400 */
+}
+
+.today-highlight:hover:not(.selected) {
+    background-color: #fed7aa; /* orange-200 */
+}
+
+/* Pastikan selected tetap menimpa today-highlight jika diperlukan */
+.selected.today-highlight {
+    background-color: #f43f5e !important; /* rose-500 */
+    color: white !important;
+    border: none;
+}
+
+/* Gaya untuk tombol ganti pengguna jika ingin kustomisasi lebih lanjut */
+/* Sudah dihandle dengan Tailwind di Blade, tapi ini contoh jika mau di CSS */
+
+.user-switch-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+    font-size: 0.875rem;
+}
+.user-switch-btn.active {
+    background-color: #f43f5e;
+    color: white;
+    font-weight: 600;
+}
+.user-switch-btn.inactive {
+    background-color: #fce7f3;
+    color: #c2163c;
+    border: 1px solid #fbcfe8;
+}
+.user-switch-btn.inactive:hover {
+    background-color: #fbcfe8;
+}
