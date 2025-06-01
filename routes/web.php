@@ -57,4 +57,5 @@ Route::prefix('app-data')->group(function () {
     Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.data.index');
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.data.store');
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.data.destroy');
+    Route::get('/expenses/monthly-summary', [ExpenseController::class, 'monthlySummary'])->name('expenses.data.monthlySummary');
 });

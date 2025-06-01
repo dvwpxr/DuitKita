@@ -416,6 +416,7 @@ async function addExpense(e) {
         await renderExpensesForSelectedDate();
 
         await renderCalendar(); // Untuk update dot 'has-expenses'
+        await renderMonthlyRecap(); // UPDATE REKAPAN
     } catch (error) {
         console.error("Error adding expense (addExpense):", error);
 
@@ -461,6 +462,8 @@ async function deleteExpenseAPI(expenseId) {
         // Jika berhasil
         await renderExpensesForSelectedDate(); // Muat ulang daftar pengeluaran untuk tanggal yang dipilih
         await renderCalendar(); // Muat ulang kalender untuk update dot 'has-expenses'
+        await renderMonthlyRecap(); // UPDATE REKAPAN
+        alert("Pengeluaran berhasil dihapus.");
     } catch (error) {
         console.error("Error deleting expense (deleteExpenseAPI):", error);
         // Anda mungkin ingin menampilkan pesan error ini ke pengguna juga jika belum ditangani di atas
@@ -482,6 +485,79 @@ function addDeleteEventListeners() {
             }
         });
     });
+}
+async function renderMonthlyRecap() {
+    const recapListEl = document.getElementById("monthlyRecapList");
+    const noRecapMessageEl = document.getElementById("noMonthlyRecapMessage");
+
+    if (!recapListEl || !noRecapMessageEl) {
+        console.error("Elemen untuk rekapan bulanan tidak ditemukan.");
+        return;
+    }
+
+    // Tampilkan pesan memuat sementara
+    noRecapMessageEl.textContent = "Memuat data rekapan...";
+    noRecapMessageEl.style.display = "block";
+    // Kosongkan daftar yang mungkin sudah ada
+    recapListEl
+        .querySelectorAll(".recap-item")
+        .forEach((item) => item.remove());
+
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/expenses/monthly-summary`
+        ); // Panggil endpoint baru
+        if (!response.ok) {
+            const errorText = await response
+                .text()
+                .catch(() => "Tidak bisa mengambil detail error");
+            console.error(
+                "API Error (renderMonthlyRecap):",
+                response.status,
+                errorText
+            );
+            noRecapMessageEl.textContent =
+                "Gagal memuat rekapan. Coba refresh halaman.";
+            noRecapMessageEl.className = "text-red-500 italic"; // Ubah style pesan error
+            return;
+        }
+        const summaries = await response.json();
+
+        if (summaries.length === 0) {
+            noRecapMessageEl.textContent =
+                "Belum ada data pengeluaran untuk direkap.";
+            noRecapMessageEl.className = "text-gray-500 italic"; // Kembalikan style normal
+            return;
+        }
+
+        noRecapMessageEl.style.display = "none"; // Sembunyikan pesan jika ada data
+
+        summaries.forEach((summary) => {
+            const itemDiv = document.createElement("div");
+            // Tambahkan kelas 'recap-item' untuk memudahkan menghapus item lama
+            itemDiv.className =
+                "recap-item p-4 bg-white rounded-lg shadow-md flex flex-col sm:flex-row justify-between sm:items-center transition-all hover:shadow-lg hover:scale-[1.01]";
+
+            const monthYearSpan = document.createElement("span");
+            monthYearSpan.className =
+                "font-semibold text-gray-800 text-lg mb-1 sm:mb-0";
+            monthYearSpan.textContent = `${summary.month_name} ${summary.year}`;
+
+            const amountSpan = document.createElement("span");
+            amountSpan.className = "text-indigo-600 font-bold text-lg";
+            amountSpan.textContent = `Rp ${Number(
+                summary.total_amount
+            ).toLocaleString("id-ID")}`;
+
+            itemDiv.appendChild(monthYearSpan);
+            itemDiv.appendChild(amountSpan);
+            recapListEl.appendChild(itemDiv);
+        });
+    } catch (error) {
+        console.error("Fetch error for monthly recap:", error);
+        noRecapMessageEl.textContent = "Terjadi kesalahan saat memuat rekapan.";
+        noRecapMessageEl.className = "text-red-500 italic";
+    }
 }
 
 async function renderExpensesChart() {
@@ -640,4 +716,5 @@ async function initializeApp() {
 
     await renderCalendar(); // Render kalender untuk bulan yang sudah ditentukan
     await handleDateClick(initialDateToSelect); // Pilih tanggal dan render pengeluaran serta chart
+    await renderMonthlyRecap(); // PANGGIL FUNGSI REKAPAN DI SINI
 }

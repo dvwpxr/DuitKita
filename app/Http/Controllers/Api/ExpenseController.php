@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator; // Import Validator
 use Illuminate\Support\Facades\Session; // Tambahkan ini
 use Illuminate\Support\Facades\Log; // Tambahkan ini jika belum ada
+use Illuminate\Support\Facades\DB; // PENTING: Tambahkan ini untuk query DB::raw
 
 class ExpenseController extends Controller
 {
@@ -127,5 +128,55 @@ class ExpenseController extends Controller
         }
         $expense->delete();
         return response()->json(null, 204);
+    }
+
+    public function monthlySummary(Request $request)
+    {
+        $activeUserId = $this->getActiveUserId();
+        if (!$activeUserId) {
+            return response()->json(['message' => 'Pengguna aktif tidak ditemukan.'], 403);
+        }
+
+        $summaries = \App\Models\Expense::where('user_id', $activeUserId)
+            ->select(
+                DB::raw('YEAR(date) as year'),
+                DB::raw('MONTH(date) as month_number'), // Nomor bulan (1-12)
+                DB::raw('SUM(amount) as total_amount')
+            )
+            ->groupBy('year', 'month_number')
+            ->orderBy('year', 'desc')
+            ->orderBy('month_number', 'desc') // Urutkan dari bulan terbaru
+            ->get();
+
+        // Daftar nama bulan dalam Bahasa Indonesia
+        $indonesianMonthNames = [
+            "Januari",
+            "Februari",
+            "Maret",
+            "April",
+            "Mei",
+            "Juni",
+            "Juli",
+            "Agustus",
+            "September",
+            "Oktober",
+            "November",
+            "Desember"
+        ];
+
+        // Ubah hasil query untuk menyertakan nama bulan dan format total
+        $result = $summaries->map(function ($summary) use ($indonesianMonthNames) {
+            return [
+                'year' => (int)$summary->year,
+                'month_number' => (int)$summary->month_number,
+                'month_name' => $indonesianMonthNames[$summary->month_number - 1], // -1 karena array 0-indexed
+                'total_amount' => (float)$summary->total_amount,
+            ];
+        });
+
+        return response()->json($result)
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 }

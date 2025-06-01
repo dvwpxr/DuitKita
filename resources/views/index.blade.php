@@ -125,6 +125,15 @@
                         <canvas id="expensesChart"></canvas>
                     </div>
                 </div>
+                <div class="lg:col-span-3 mt-8"> {{-- Pastikan ini ada di dalam <main class="grid ..."> --}}
+                    <div class="p-6 bg-indigo-50 rounded-xl border border-indigo-200 shadow-sm">
+                        <h2 class="text-2xl font-semibold text-indigo-700 mb-4">Rekapan Pengeluaran Bulanan</h2>
+                        <div id="monthlyRecapList" class="space-y-3">
+                            {{-- Data rekapan akan dimasukkan di sini oleh JavaScript --}}
+                            <p id="noMonthlyRecapMessage" class="text-gray-500 italic">Memuat data rekapan atau belum ada data...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
 
