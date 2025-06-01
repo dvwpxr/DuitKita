@@ -237,7 +237,7 @@ async function renderCalendar() {
         if (dateValue < MIN_DATE || dateValue > MAX_DATE) {
             dayEl.classList.add("disabled");
             if (dateValue.getTime() === today.getTime()) {
-                dayEl.classList.remove("today-highlight"); // Hapus highlight jika hari ini disabled
+                dayEl.classList.remove("today-highlight"); // Hapus highlight jika hari ini disableda
             }
         } else {
             dayEl.onclick = () => handleDateClick(dateValue);
