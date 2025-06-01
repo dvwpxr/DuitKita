@@ -463,7 +463,6 @@ async function deleteExpenseAPI(expenseId) {
         await renderExpensesForSelectedDate(); // Muat ulang daftar pengeluaran untuk tanggal yang dipilih
         await renderCalendar(); // Muat ulang kalender untuk update dot 'has-expenses'
         await renderMonthlyRecap(); // UPDATE REKAPAN
-        alert("Pengeluaran berhasil dihapus.");
     } catch (error) {
         console.error("Error deleting expense (deleteExpenseAPI):", error);
         // Anda mungkin ingin menampilkan pesan error ini ke pengguna juga jika belum ditangani di atas
