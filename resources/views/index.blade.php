@@ -127,7 +127,7 @@
                 </div>
                 <div class="lg:col-span-3 mt-8"> {{-- Pastikan ini ada di dalam <main class="grid ..."> --}}
                     <div class="p-6 bg-indigo-50 rounded-xl border border-indigo-200 shadow-sm">
-                        <h2 class="text-2xl font-semibold text-indigo-700 mb-4">Rekapan Pengeluaran Bulanan</h2>
+                        <h2 class="text-2xl font-semibold text-indigo-700 mb-4">Rekapan Pengeluaran Bulanan Kamu nih.</h2>
                         <div id="monthlyRecapList" class="space-y-3">
                             {{-- Data rekapan akan dimasukkan di sini oleh JavaScript --}}
                             <p id="noMonthlyRecapMessage" class="text-gray-500 italic">Memuat data rekapan atau belum ada data...</p>
@@ -138,7 +138,7 @@
         </main>
 
         <footer class="text-center mt-12 pt-6 border-t border-rose-200">
-            <p class="text-sm text-gray-500">&copy; {{ date('Y') }} Dibuat dengan {{ Session::get('active_user_name', 'Kalian') }} dan untuk kamu ♥</p>
+            <p class="text-sm text-gray-500">&copy; Dibuat dengan Dava, untuk kita ♥</p>
         </footer>
     </div>
 
