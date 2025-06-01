@@ -184,66 +184,85 @@ async function renderCalendar() {
         );
         return;
     }
-    calendarGrid.innerHTML = "";
+    calendarGrid.innerHTML = ""; // Kosongkan grid kalender
     const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+    const month = currentDate.getMonth(); // 0 untuk Januari, 11 untuk Desember
+
     currentMonthYearEl.textContent = `${monthNames[month]} ${year}`;
 
+    // Dapatkan hari pertama dalam seminggu untuk bulan ini (0=Minggu, 1=Senin, ..., 6=Sabtu)
     const firstDayOfMonth = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Buat header hari (Min, Sen, Sel, dst.)
     const dayHeaders = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
     dayHeaders.forEach((header) => {
         const headerEl = document.createElement("div");
-        headerEl.className = "font-semibold text-stone-600 text-sm py-1";
+        headerEl.className = "font-semibold text-stone-600 text-sm py-1"; // Sesuaikan style jika perlu
         headerEl.textContent = header;
         calendarGrid.appendChild(headerEl);
     });
 
-    let adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-    for (let i = 0; i < adjustedFirstDay; i++)
-        calendarGrid.appendChild(document.createElement("div"));
+    // Buat sel kosong untuk hari-hari sebelum tanggal 1 di bulan ini
+    // Karena dayHeaders[0] adalah 'Min' (Minggu), dan getDay() mengembalikan 0 untuk Minggu,
+    // maka firstDayOfMonth sudah benar menunjukkan jumlah sel kosong yang dibutuhkan.
+    for (let i = 0; i < firstDayOfMonth; i++) {
+        // PERBAIKAN DI SINI: Gunakan firstDayOfMonth langsung
+        const emptyCell = document.createElement("div");
+        calendarGrid.appendChild(emptyCell);
+    }
 
+    // Ambil data pengeluaran untuk menandai hari yang memiliki pengeluaran
     const expensesInCurrentMonth = await fetchExpensesForMonth(year, month);
 
-    // Dapatkan tanggal hari ini (tanpa komponen waktu)
+    // Dapatkan tanggal hari ini (tanpa komponen waktu) untuk highlight
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalisasi ke awal hari
+    today.setHours(0, 0, 0, 0);
 
+    // Buat sel untuk setiap hari di bulan ini
     for (let day = 1; day <= daysInMonth; day++) {
         const dayEl = document.createElement("button");
         dayEl.textContent = day;
         dayEl.className =
-            "calendar-day p-2 rounded-md aspect-square flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-sky-400";
+            "calendar-day p-2 rounded-md aspect-square flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"; // Sesuaikan style jika perlu
         const dateValue = new Date(year, month, day);
-        dateValue.setHours(0, 0, 0, 0); // Normalisasi dateValue untuk perbandingan yang akurat
+        dateValue.setHours(0, 0, 0, 0); // Normalisasi untuk perbandingan dengan 'today'
 
         // Cek apakah ini adalah hari ini
         if (dateValue.getTime() === today.getTime()) {
-            dayEl.classList.add("today-highlight");
+            dayEl.classList.add("today-highlight"); // Kelas untuk highlight hari ini
         }
 
+        // Nonaktifkan hari di luar rentang MIN_DATE dan MAX_DATE
         if (dateValue < MIN_DATE || dateValue > MAX_DATE) {
             dayEl.classList.add("disabled");
-            // Jika hari ini di luar rentang, jangan tandai sebagai today-highlight
             if (dateValue.getTime() === today.getTime()) {
-                dayEl.classList.remove("today-highlight"); // Hapus jika terlanjur ditambahkan
+                dayEl.classList.remove("today-highlight"); // Hapus highlight jika hari ini disabled
             }
         } else {
             dayEl.onclick = () => handleDateClick(dateValue);
         }
 
+        // Tandai hari yang dipilih
         if (
             selectedDate &&
             dateValue.toDateString() === selectedDate.toDateString()
         ) {
             dayEl.classList.add("selected");
-            // Jika hari ini juga terpilih, kelas 'selected' akan mengambil alih karena !important pada backgroundnya
         }
 
+        // Tandai hari yang memiliki pengeluaran
         if (
-            expensesInCurrentMonth.some(
-                (exp) => exp.date === formatDateISO(dateValue)
-            )
+            expensesInCurrentMonth.some((exp) => {
+                // Pastikan perbandingan tanggal di sini akurat, exp.date dari API adalah YYYY-MM-DD
+                // Kita perlu mengonversi exp.date ke objek Date dengan cara yang sama seperti dateValue untuk perbandingan
+                // atau format dateValue ke YYYY-MM-DD untuk perbandingan string.
+                // Mengingat exp.date dari API adalah string UTC YYYY-MM-DDTHH:mm:ss.sssZ
+                // dan formatDateISO(dateValue) menghasilkan YYYY-MM-DD
+                if (!exp.date) return false;
+                const expenseDateOnly = exp.date.substring(0, 10); // Ambil YYYY-MM-DD dari string ISO
+                return expenseDateOnly === formatDateISO(dateValue);
+            })
         ) {
             dayEl.classList.add("has-expenses");
         }
