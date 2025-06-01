@@ -350,127 +350,132 @@ async function renderExpensesForSelectedDate() {
     await renderExpensesChart();
 }
 
+// Di dalam <script> di index.blade.php atau di file assets/js/script.js Anda
+
 async function addExpense(e) {
     e.preventDefault();
-
     if (!selectedDate) {
         alert("Silakan pilih tanggal terlebih dahulu.");
-
         return;
     }
-
     const description = expenseDescriptionInput.value.trim();
-
-    // Dapatkan nilai angka murni dari input yang diformat
-
-    const amount = getUnformattedNumber(expenseAmountInput.value);
+    const amount = getUnformattedNumber(expenseAmountInput.value); // Gunakan fungsi Anda jika ada
 
     if (!description || isNaN(amount) || amount <= 0) {
         alert(
             "Deskripsi dan jumlah pengeluaran harus valid. Jumlah harus lebih besar dari 0."
         );
-
         return;
     }
 
     const newExpenseData = {
         date: formatDateISO(selectedDate),
-
-        description,
-
-        amount,
+        description: description,
+        amount: amount,
     };
 
-    try {
-        const csrfToken = document
-            .querySelector('meta[name="csrf-token"]')
-            .getAttribute("content"); // Ambil token
-        const response = await fetch(`${API_BASE_URL}/expenses`, {
-            method: "POST",
+    // Ambil CSRF token dari meta tag
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfTokenMeta) {
+        console.error("CSRF meta tag tidak ditemukan!");
+        alert("Terjadi kesalahan konfigurasi (CSRF). Silakan refresh halaman.");
+        return;
+    }
+    const csrfToken = csrfTokenMeta.getAttribute("content");
 
+    try {
+        const response = await fetch(`${API_BASE_URL}/expenses`, {
+            // Pastikan API_BASE_URL sudah benar ke /app-data
+            method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 Accept: "application/json",
-                "X-CSRF-TOKEN": document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute("content"),
+                "X-CSRF-TOKEN": csrfToken, // KIRIM CSRF TOKEN DI SINI
             },
-
             body: JSON.stringify(newExpenseData),
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({
-                message: "Gagal menyimpan data.",
-            }));
-
-            throw new Error(
-                errorData.message || `Server error: ${response.status}`
-            );
+            // Jika errornya adalah 419, itu spesifik CSRF token mismatch atau session expired
+            if (response.status === 419) {
+                alert(
+                    "Sesi Anda mungkin telah berakhir atau token keamanan tidak valid. Silakan refresh halaman dan coba lagi."
+                );
+            } else {
+                const errorData = await response
+                    .json()
+                    .catch(() => ({
+                        message:
+                            "Gagal menyimpan data atau respons server tidak valid.",
+                    }));
+                alert(
+                    `Gagal menambahkan pengeluaran: ${
+                        errorData.message || `Status ${response.status}`
+                    }`
+                );
+            }
+            throw new Error(`Server error: ${response.status}`);
         }
 
         if (expenseForm) expenseForm.reset();
-
-        if (expenseAmountInput) expenseAmountInput.value = ""; // Kosongkan field jumlah setelah submit
-
+        if (expenseAmountInput) expenseAmountInput.value = "";
         await renderExpensesForSelectedDate();
-
-        await renderCalendar(); // Untuk update dot 'has-expenses'
-        await renderMonthlyRecap(); // UPDATE REKAPAN
+        await renderCalendar();
+        await renderMonthlyRecap(); // Jika Anda sudah mengimplementasikannya
     } catch (error) {
         console.error("Error adding expense (addExpense):", error);
-
-        alert(`Gagal menambahkan pengeluaran: ${error.message}`);
+        // Alert sudah ditampilkan di atas jika !response.ok
     }
 }
 
 async function deleteExpenseAPI(expenseId) {
-    // expenseId adalah nilai, bukan string "{expenseId}"
+    // Ambil CSRF token dari meta tag
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfTokenMeta) {
+        console.error("CSRF meta tag tidak ditemukan!");
+        alert("Terjadi kesalahan konfigurasi (CSRF). Silakan refresh halaman.");
+        return;
+    }
+    const csrfToken = csrfTokenMeta.getAttribute("content");
+
     try {
-        // Pastikan Anda menggunakan backtick (`) untuk template literal
-        // dan ${API_BASE_URL} serta ${expenseId} untuk menyisipkan nilai variabel.
         const response = await fetch(
-            `${API_BASE_URL}/expenses` + `/${expenseId}`,
+            `<span class="math-inline">\{API\_BASE\_URL\}/expenses/</span>{expenseId}`,
             {
-                // PERHATIKAN BAGIAN INI
                 method: "DELETE",
                 headers: {
                     Accept: "application/json",
-                    "X-CSRF-TOKEN": document
-                        .querySelector('meta[name="csrf-token"]')
-                        .getAttribute("content"),
+                    "X-CSRF-TOKEN": csrfToken, // KIRIM CSRF TOKEN DI SINI
                 },
             }
         );
 
         if (!response.ok && response.status !== 204) {
             // 204 No Content juga OK
-            const errorData = await response.json().catch(() => ({
-                message:
-                    "Gagal menghapus data atau respons server tidak valid.",
-            }));
-            // Tampilkan pesan error ke pengguna (misalnya via alert atau notifikasi UI yang lebih baik)
-            alert(
-                `Gagal menghapus pengeluaran: ${
-                    errorData.message || `Status ${response.status}`
-                }`
-            );
-            throw new Error(
-                errorData.message || `Server error: ${response.status}`
-            );
+            if (response.status === 419) {
+                alert(
+                    "Sesi Anda mungkin telah berakhir atau token keamanan tidak valid. Silakan refresh halaman dan coba lagi."
+                );
+            } else {
+                const errorData = await response
+                    .json()
+                    .catch(() => ({
+                        message:
+                            "Gagal menghapus data atau respons server tidak valid.",
+                    }));
+                alert(
+                    `Gagal menghapus pengeluaran: ${
+                        errorData.message || `Status ${response.status}`
+                    }`
+                );
+            }
+            throw new Error(`Server error: ${response.status}`);
         }
-        // Jika berhasil
-        await renderExpensesForSelectedDate(); // Muat ulang daftar pengeluaran untuk tanggal yang dipilih
-        await renderCalendar(); // Muat ulang kalender untuk update dot 'has-expenses'
-        await renderMonthlyRecap(); // UPDATE REKAPAN
-        alert("Pengeluaran berhasil dihapus.");
+        await renderExpensesForSelectedDate();
+        await renderCalendar();
+        await renderMonthlyRecap(); // Jika Anda sudah mengimplementasikannya
     } catch (error) {
         console.error("Error deleting expense (deleteExpenseAPI):", error);
-        // Anda mungkin ingin menampilkan pesan error ini ke pengguna juga jika belum ditangani di atas
-        if (!alertShown) {
-            // Hindari alert ganda jika sudah ditangani di atas
-            alert(`Terjadi kesalahan saat menghapus: ${error.message}`);
-        }
     }
 }
 
