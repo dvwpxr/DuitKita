@@ -244,7 +244,32 @@ async function renderCalendar() {
         }
 
         // Tandai hari yang dipilih
-        if 
+        if (
+            selectedDate &&
+            dateValue.toDateString() === selectedDate.toDateString()
+        ) {
+            dayEl.classList.add("selected");
+        }
+
+        // Tandai hari yang memiliki pengeluaran
+        if (
+            expensesInCurrentMonth.some((exp) => {
+                // Pastikan perbandingan tanggal di sini akurat, exp.date dari API adalah YYYY-MM-DD
+                // Kita perlu mengonversi exp.date ke objek Date dengan cara yang sama seperti dateValue untuk perbandingan
+                // atau format dateValue ke YYYY-MM-DD untuk perbandingan string.
+                // Mengingat exp.date dari API adalah string UTC YYYY-MM-DDTHH:mm:ss.sssZ
+                // dan formatDateISO(dateValue) menghasilkan YYYY-MM-DD
+                if (!exp.date) return false;
+                const expenseDateOnly = exp.date.substring(0, 10); // Ambil YYYY-MM-DD dari string ISO
+                return expenseDateOnly === formatDateISO(dateValue);
+            })
+        ) {
+            dayEl.classList.add("has-expenses");
+        }
+        calendarGrid.appendChild(dayEl);
+    }
+    updateNavigationButtons();
+}
 
 function updateNavigationButtons() {
     if (!prevMonthBtn || !nextMonthBtn || !currentDate) return;
