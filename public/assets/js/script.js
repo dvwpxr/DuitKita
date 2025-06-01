@@ -123,9 +123,9 @@ function formatDateISO(date) {
     if (!date) return null;
     const d = new Date(date);
     const year = d.getFullYear();
-    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const month = (d.getMonth() + 1).toString().padStart(2, "0"); // Bulan (1-12)
     const day = d.getDate().toString().padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return `${year}-${month}-${day}`; // Format YYYY-MM-DD
 }
 
 async function fetchExpensesForDate(isoDate) {
@@ -252,19 +252,26 @@ async function renderCalendar() {
         }
 
         // Tandai hari yang memiliki pengeluaran
-        if (
-            expensesInCurrentMonth.some((exp) => {
-                // Pastikan perbandingan tanggal di sini akurat, exp.date dari API adalah YYYY-MM-DD
-                // Kita perlu mengonversi exp.date ke objek Date dengan cara yang sama seperti dateValue untuk perbandingan
-                // atau format dateValue ke YYYY-MM-DD untuk perbandingan string.
-                // Mengingat exp.date dari API adalah string UTC YYYY-MM-DDTHH:mm:ss.sssZ
-                // dan formatDateISO(dateValue) menghasilkan YYYY-MM-DD
-                if (!exp.date) return false;
-                const expenseDateOnly = exp.date.substring(0, 10); // Ambil YYYY-MM-DD dari string ISO
-                return expenseDateOnly === formatDateISO(dateValue);
-            })
-        ) {
-            dayEl.classList.add("has-expenses");
+        if (expensesInCurrentMonth && expensesInCurrentMonth.length > 0) {
+            // Pastikan ada data untuk diperiksa
+            if (
+                expensesInCurrentMonth.some((exp) => {
+                    if (!exp.date) return false;
+                    // exp.date dari API Anda adalah string format YYYY-MM-DDTHH:mm:ss.sssZ
+                    // kita hanya butuh bagian YYYY-MM-DD untuk perbandingan
+                    const expenseDateOnly = exp.date.substring(0, 10);
+                    const calendarDateISO = formatDateISO(dateValue); // Fungsi ini menghasilkan YYYY-MM-DD
+
+                    // DEBUG: Untuk melihat perbandingan tanggal
+                    // if (day === 1) { // Contoh log untuk tanggal 1 saja agar tidak terlalu banyak
+                    //     console.log(`Comparing for day ${day}: API date part = ${expenseDateOnly}, Calendar date ISO = ${calendarDateISO}`);
+                    // }
+
+                    return expenseDateOnly === calendarDateISO;
+                })
+            ) {
+                dayEl.classList.add("has-expenses");
+            }
         }
         calendarGrid.appendChild(dayEl);
     }

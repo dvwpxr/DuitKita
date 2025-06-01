@@ -86,3 +86,19 @@ body {
 .user-switch-btn.inactive:hover {
     background-color: #fbcfe8;
 }
+
+.has-expenses {
+    position: relative; /* Diperlukan agar ::after bisa diposisikan relatif terhadap ini */
+}
+
+.has-expenses::after {
+    content: "";
+    position: absolute;
+    bottom: 4px; /* Posisi titik dari bawah tombol tanggal */
+    left: 50%; /* Posisi horizontal di tengah tombol tanggal */
+    transform: translateX(-50%); /* Menyempurnakan posisi tengah horizontal */
+    width: 6px; /* Lebar titik */
+    height: 6px; /* Tinggi titik */
+    background-color: #fb923c; /* Warna titik (Tailwind orange-400) */
+    border-radius: 50%; /* Membuatnya bulat */
+}
