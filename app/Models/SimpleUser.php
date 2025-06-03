@@ -14,4 +14,9 @@ class SimpleUser extends Model
     {
         return $this->hasMany(Expense::class, 'user_id'); // Asumsi kolom FK di expenses adalah user_id
     }
+
+    public function incomes(): HasMany
+    {
+        return $this->hasMany(\App\Models\Income::class, 'user_id');
+    }
 }

@@ -86,31 +86,76 @@
 
             {{-- Sidebar Input dengan style baru (col-span penuh di mobile, 1 di large) --}}
             <aside class="lg:col-span-1">
-                <div class="p-6 bg-emerald-200 rounded-xl border border-rose-200 shadow-sm sticky top-8">
-                    <h2 class="text-2xl font-semibold text-slate-900  mb-1">Tambah (Pengeluaran)</h2>
-                    <p id="selectedDateDisplay" class="text-lg font-medium text-slate-900 mb-5">Pilih tanggal dulu yaaa...</p>
-                    <form id="expenseForm" class="space-y-5">
-                        @csrf
-                        <div>
-                            <label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Untuk Apa Kamuu?</label>
-                            <input type="text" id="expenseDescription" name="expenseDescription" required class="mt-1 block w-full px-4 py-2.5 border border-gray-400 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 sm:text-sm transition-colors" placeholder="Harus Jujur Yaa...">
-                        </div>
-                        <div>
-                            <label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Berapa (Rp)?</label>
-                            <input type="text" id="expenseAmount" name="expenseAmount" required class="mt-1 block w-full px-4 py-2.5 border border-gray-400 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 sm:text-sm transition-colors" placeholder="50.000">
-                        </div>
-                        <button type="submit" class="w-full px-4 py-3 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-600 transition duration-150 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-opacity-50">
-                            Simpan Catatan
-                        </button>
-                    </form>
+                <div class="p-6 bg-rose-50 rounded-xl border border-rose-200 shadow-sm sticky top-8">
+                    {{-- Tabs Navigasi --}}
+                    <div class="mb-5 border-b border-gray-300">
+                        <nav class="flex -mb-px" aria-label="Tabs">
+                            <button id="tabPengeluaran" onclick="switchTab('pengeluaran')"
+                                class="tab-button active-tab w-1/2 py-3 px-1 text-center border-b-2 font-medium text-sm text-rose-600 border-rose-500">
+                                💸 Pengeluaran
+                            </button>
+                            <button id="tabPemasukan" onclick="switchTab('pemasukan')"
+                                class="tab-button w-1/2 py-3 px-1 text-center border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                                💰 Pemasukan
+                            </button>
+                        </nav>
+                    </div>
 
-                    <div class="mt-8">
-                        <h3 class="text-xl font-semibold text-slate-900">Jejak Pengeluaran Hari Ini:</h3>
-                        <ul id="expenseList" class="mt-3 space-y-2.5 text-sm border-xl text-gray-800 max-h-60 overflow-y-auto pr-2">
-                            <li id="noExpensesMessage" class="text-gray-500 italic">Belum ada cerita pengeluaran hari ini...</li>
-                        </ul>
-                        <div class="mt-5 pt-3 border-t border-gray-300">
-                            <p class="text-lg font-semibold text-slate-900">Total Hari Ini: <span id="dailyTotal" class="text-emerald-500 font-semi-bold">Rp 0</span></p>
+                    {{-- Konten Form Pengeluaran (awalnya terlihat) --}}
+                    <div id="contentPengeluaran" class="tab-content">
+                        <h2 class="text-2xl font-semibold text-rose-700 mb-1">Tambah (Pengeluaran)</h2>
+                        <p id="selectedDateDisplayPengeluaran" class="text-lg font-medium text-slate-900 mb-5">Pilih tanggal dulu yaaa...</p>
+                        <form id="expenseForm" class="space-y-5">
+                            @csrf
+                            <div>
+                                <label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Untuk Apa Kamuu?</label>
+                                <input type="text" id="expenseDescription" name="expenseDescription" required class="input-field" placeholder="Makan malam romantis...">
+                            </div>
+                            <div>
+                                <label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Berapa (Rp)?</label>
+                                <input type="text" id="expenseAmount" name="expenseAmount" required class="input-field" placeholder="50.000">
+                            </div>
+                            <button type="submit" class="btn-primary w-full bg-rose-500 hover:bg-rose-800">
+                                Simpan Catatan Pengeluaran
+                            </button>
+                        </form>
+                        <div class="mt-8">
+                            <h3 class="text-xl font-semibold text-gray-700">Jejak Pengeluaran Hari Ini:</h3>
+                            <ul id="expenseList" class="mt-3 space-y-2.5 text-sm text-gray-800 max-h-60 overflow-y-auto pr-2">
+                                <li id="noExpensesMessage" class="list-empty-msg">Belum ada cerita pengeluaran hari ini...</li>
+                            </ul>
+                            <div class="total-container">
+                                <p class="total-text">Total Hari Ini: <span id="dailyTotal" class="total-amount-expense">Rp 0</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Konten Form Pemasukan (awalnya tersembunyi) --}}
+                    <div id="contentPemasukan" class="tab-content hidden">
+                        <h2 class="text-2xl font-semibold text-green-700 mb-1">Tambah (Pemasukan)</h2>
+                        <p id="selectedDateDisplayPemasukan" class="text-lg font-medium text-slate-900 mb-5">Pilih tanggal dulu yaaa...</p>
+                        <form id="incomeForm" class="space-y-5">
+                            @csrf
+                            <div>
+                                <label for="incomeDescription" class="block text-sm font-medium text-gray-700 mb-1">Dari Mana Nih?</label>
+                                <input type="text" id="incomeDescription" name="incomeDescription" required class="input-field" placeholder="Gaji, bonus...">
+                            </div>
+                            <div>
+                                <label for="incomeAmount" class="block text-sm font-medium text-gray-700 mb-1">Berapa (Rp)?</label>
+                                <input type="text" id="incomeAmount" name="incomeAmount" required class="input-field" placeholder="1.000.000">
+                            </div>
+                            <button type="submit" class="btn-primary w-full bg-green-500 hover:bg-green-700">
+                                Simpan Catatan Pemasukan
+                            </button>
+                        </form>
+                        <div class="mt-8">
+                            <h3 class="text-xl font-semibold text-gray-700">Jejak Pemasukan Hari Ini:</h3>
+                            <ul id="incomeList" class="mt-3 space-y-2.5 text-sm text-gray-800 max-h-60 overflow-y-auto pr-2">
+                                <li id="noIncomesMessage" class="list-empty-msg">Belum ada pemasukan hari ini...</li>
+                            </ul>
+                            <div class="total-container">
+                                <p class="total-text">Total Hari Ini: <span id="dailyTotalIncome" class="total-amount-income">Rp 0</span></p>
+                            </div>
                         </div>
                     </div>
                 </div>

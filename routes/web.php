@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log; // Pastikan ini ada
 use App\Models\SimpleUser; // Ganti dengan App\Models\User jika Anda menggunakan model User bawaan
 use App\Http\Controllers\Api\ExpenseController; // Sesuaikan dengan path controller Anda
+use App\Http\Controllers\Api\IncomeController; // Tambahkan ini
 
 // Rute untuk menampilkan halaman utama aplikasi catatan pengeluaran
 Route::get('/', function () {
@@ -55,7 +56,10 @@ Route::get('/set-active-user/{userName}', function ($userName) {
 // Rute untuk data pengeluaran (pastikan prefix dan controller path sudah benar)
 Route::prefix('app-data')->group(function () {
     Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.data.index');
+    Route::get('/incomes', [IncomeController::class, 'index'])->name('incomes.data.index');
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.data.store');
+    Route::post('/incomes', [IncomeController::class, 'store'])->name('incomes.data.store');
+    Route::delete('/incomes/{income}', [IncomeController::class, 'destroy'])->name('incomes.data.destroy');
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.data.destroy');
     Route::get('/expenses/monthly-summary', [ExpenseController::class, 'monthlySummary'])->name('expenses.data.monthlySummary');
 });
