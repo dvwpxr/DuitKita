@@ -1010,8 +1010,8 @@ async function renderFinancialSummaryChart() {
                     data: expenseDataForChart,
                     backgroundColor: "rgba(225, 29, 72, 0.6)", // Merah
                     borderColor: "rgba(190, 18, 60, 1)",
-                    borderWidth: 1,
-                    barPercentage: 0.8, // Membuat bar sedikit lebih gemuk
+                    borderWidth: 2,
+                    barPercentage: 1.3, // Membuat bar sedikit lebih gemuk
                     categoryPercentage: 0.7, // Mengatur spasi antar kategori hari
                 },
                 {
