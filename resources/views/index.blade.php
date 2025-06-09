@@ -125,7 +125,7 @@
                                 <h3 class="text-xl font-semibold text-gray-700 mb-2">Cari Pengeluaran Bulan Ini</h3>
                                 <div class="flex items-center space-x-2">
                                     <input type="text" id="expenseSearchInput" class="input-field flex-grow" placeholder="Cari 'bensin', 'makan', dll...">
-                                    <button id="expenseSearchBtn" class="px-4 py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg shadow-sm transition-colors">Cari</button>
+                                    <button id="expenseSearchBtn" class="px-4 py-2.5 bg-sky-400 hover:bg-sky-600 text-white font-semibold rounded-lg shadow-sm transition-colors">Cari</button>
                                 </div>
                                 {{-- Wadah untuk menampilkan hasil pencarian --}}
                                 <div id="expenseSearchResults" class="mt-4 space-y-2">
