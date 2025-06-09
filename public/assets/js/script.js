@@ -243,6 +243,8 @@ async function fetchExpensesForMonth(year, monthZeroIndexed) {
 }
 
 // --- Fungsi Render UI ---
+// Ganti fungsi renderCalendar Anda dengan yang ini:
+
 async function renderCalendar() {
     if (!calendarGrid || !currentMonthYearEl || !currentDate) {
         console.warn(
@@ -250,49 +252,71 @@ async function renderCalendar() {
         );
         return;
     }
-    calendarGrid.innerHTML = "";
+    calendarGrid.innerHTML = ""; // Kosongkan grid kalender
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
+
     currentMonthYearEl.textContent = `${monthNames[month]} ${year}`;
 
-    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0=Minggu, 1=Senin, dst.
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // ==================================================================
+    // BAGIAN YANG DITAMBAHKAN UNTUK NAMA HARI
+    // ==================================================================
     const dayHeaders = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
     dayHeaders.forEach((header) => {
         const headerEl = document.createElement("div");
-        headerEl.className = "font-semibold text-gray-600 text-sm py-1"; // Disesuaikan dengan tema
+        // Style disesuaikan dengan tema rose Anda
+        headerEl.className =
+            "font-semibold text-rose-800 text-sm text-center py-2";
+        headerEl.textContent = header;
         calendarGrid.appendChild(headerEl);
     });
+    // ==================================================================
 
-    for (let i = 0; i < firstDayOfMonth; i++)
-        calendarGrid.appendChild(document.createElement("div"));
+    // Buat sel kosong untuk hari-hari sebelum tanggal 1
+    for (let i = 0; i < firstDayOfMonth; i++) {
+        const emptyCell = document.createElement("div");
+        calendarGrid.appendChild(emptyCell);
+    }
 
+    // Ambil data pengeluaran untuk menandai hari yang memiliki pengeluaran
     const expensesInCurrentMonth = await fetchExpensesForMonth(year, month);
+    // Jika Anda ingin indikator untuk pemasukan juga, panggil fetchIncomesForMonth di sini
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Buat sel untuk setiap hari di bulan ini
     for (let day = 1; day <= daysInMonth; day++) {
         const dayEl = document.createElement("button");
         dayEl.textContent = day;
         dayEl.className =
-            "calendar-day p-2 rounded-lg aspect-square flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 transition-colors duration-150";
+            "calendar-day p-2 rounded-lg aspect-square flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 transition-colors duration-150"; // Sesuaikan style jika perlu
         const dateValue = new Date(year, month, day);
         dateValue.setHours(0, 0, 0, 0);
 
-        if (dateValue.getTime() === today.getTime())
+        if (dateValue.getTime() === today.getTime()) {
             dayEl.classList.add("today-highlight");
+        }
+
         if (dateValue < MIN_DATE || dateValue > MAX_DATE) {
             dayEl.classList.add("disabled");
-            if (dateValue.getTime() === today.getTime())
+            if (dateValue.getTime() === today.getTime()) {
                 dayEl.classList.remove("today-highlight");
+            }
         } else {
             dayEl.onclick = () => handleDateClick(dateValue);
         }
+
         if (
             selectedDate &&
             dateValue.toDateString() === selectedDate.toDateString()
-        )
+        ) {
             dayEl.classList.add("selected");
+        }
+
         if (expensesInCurrentMonth && expensesInCurrentMonth.length > 0) {
             if (
                 expensesInCurrentMonth.some((exp) => {
