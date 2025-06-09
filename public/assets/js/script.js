@@ -12,6 +12,9 @@ let calendarGrid,
     dailyTotalEl, // Untuk pengeluaran
     expensesChartCanvasCtx;
 
+let expenseSearchInput, expenseSearchBtn, expenseSearchResultsEl;
+let currentMonthExpenses = []; // Untuk menyimpan semua pengeluaran bulan ini
+
 let incomeForm,
     incomeDescriptionInput,
     incomeAmountInput,
@@ -102,6 +105,11 @@ document.addEventListener("DOMContentLoaded", function () {
         "selectedDateDisplayPemasukan"
     );
 
+    // Inisialisasi elemen Pencarian
+    expenseSearchInput = document.getElementById("expenseSearchInput");
+    expenseSearchBtn = document.getElementById("expenseSearchBtn");
+    expenseSearchResultsEl = document.getElementById("expenseSearchResults");
+
     // Inisialisasi elemen Tab
     tabPengeluaran = document.getElementById("tabPengeluaran");
     tabPemasukan = document.getElementById("tabPemasukan");
@@ -124,16 +132,18 @@ document.addEventListener("DOMContentLoaded", function () {
     if (prevMonthBtn)
         prevMonthBtn.onclick = async () => {
             if (!currentDate) return;
+            clearSearchResults(); // KOSONGKAN HASIL PENCARIAN
             currentDate.setMonth(currentDate.getMonth() - 1);
             await renderCalendar();
-            await renderExpensesChart();
+            await renderFinancialSummaryChart(); // Ganti nama fungsi chart jika sudah diubah
         };
     if (nextMonthBtn)
         nextMonthBtn.onclick = async () => {
             if (!currentDate) return;
+            clearSearchResults(); // KOSONGKAN HASIL PENCARIAN
             currentDate.setMonth(currentDate.getMonth() + 1);
             await renderCalendar();
-            await renderExpensesChart();
+            await renderFinancialSummaryChart(); // Ganti nama fungsi chart jika sudah diubah
         };
 
     if (expenseAmountInput) {
@@ -164,6 +174,19 @@ document.addEventListener("DOMContentLoaded", function () {
     // Event listener untuk tombol tab (jika belum ada di HTML onclick)
     if (tabPengeluaran) tabPengeluaran.onclick = () => switchTab("pengeluaran");
     if (tabPemasukan) tabPemasukan.onclick = () => switchTab("pemasukan");
+
+    // Event listener untuk tombol cari
+    if (expenseSearchBtn) {
+        expenseSearchBtn.onclick = handleSearchExpenses;
+    }
+    // Opsional: Cari saat menekan Enter di input field
+    if (expenseSearchInput) {
+        expenseSearchInput.addEventListener("keyup", function (event) {
+            if (event.key === "Enter") {
+                handleSearchExpenses();
+            }
+        });
+    }
 
     initializeApp();
 });
@@ -283,6 +306,8 @@ async function renderCalendar() {
 
     // Ambil data pengeluaran untuk menandai hari yang memiliki pengeluaran
     const expensesInCurrentMonth = await fetchExpensesForMonth(year, month);
+    // SIMPAN DATA INI KE VARIABEL GLOBAL UNTUK PENCARIAN
+    currentMonthExpenses = expensesInCurrentMonth;
     // Jika Anda ingin indikator untuk pemasukan juga, panggil fetchIncomesForMonth di sini
 
     const today = new Date();
@@ -333,6 +358,65 @@ async function renderCalendar() {
     updateNavigationButtons();
 }
 
+function handleSearchExpenses() {
+    if (!expenseSearchInput || !expenseSearchResultsEl || !currentMonthExpenses)
+        return;
+
+    const searchTerm = expenseSearchInput.value.trim().toLowerCase();
+    expenseSearchResultsEl.innerHTML = ""; // Kosongkan hasil pencarian sebelumnya
+
+    if (!searchTerm) {
+        // Jika input pencarian kosong, tidak perlu melakukan apa-apa
+        // atau bisa juga menampilkan pesan "Ketik sesuatu untuk dicari"
+        return;
+    }
+
+    const results = currentMonthExpenses.filter((exp) =>
+        exp.description.toLowerCase().includes(searchTerm)
+    );
+
+    if (results.length === 0) {
+        expenseSearchResultsEl.innerHTML =
+            '<p class="text-gray-500 italic p-2">Tidak ditemukan pengeluaran dengan kata kunci "' +
+            searchTerm +
+            '" di bulan ini.</p>';
+        return;
+    }
+
+    const resultsList = document.createElement("ul");
+    resultsList.className = "space-y-3";
+
+    results.forEach((exp) => {
+        const li = document.createElement("li");
+        // Buat item list bisa diklik untuk pindah ke tanggal tersebut
+        li.className =
+            "flex justify-between items-center p-3 bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer hover:bg-sky-50";
+        li.onclick = () => handleDateClick(new Date(exp.date)); // Navigasi ke tanggal saat diklik
+
+        li.innerHTML = `
+            <div class="flex flex-col">
+                <span class="font-semibold text-gray-800">${
+                    exp.description
+                }</span>
+                <span class="text-xs text-gray-500">${formatDate(
+                    new Date(exp.date)
+                )}</span>
+            </div>
+            <span class="text-rose-600 font-semibold">Rp ${Number(
+                exp.amount
+            ).toLocaleString("id-ID")}</span>
+        `;
+        resultsList.appendChild(li);
+    });
+
+    expenseSearchResultsEl.appendChild(resultsList);
+}
+
+function clearSearchResults() {
+    if (expenseSearchResultsEl) expenseSearchResultsEl.innerHTML = "";
+    if (expenseSearchInput) expenseSearchInput.value = "";
+}
+
 function updateNavigationButtons() {
     if (!prevMonthBtn || !nextMonthBtn || !currentDate) return;
     const prevMonthTest = new Date(
@@ -356,6 +440,7 @@ function updateNavigationButtons() {
 }
 
 async function handleDateClick(date) {
+    clearSearchResults(); // KOSONGKAN HASIL PENCARIAN
     selectedDate = date;
     const formattedCurrentDate = formatDate(selectedDate);
     // Update display tanggal di kedua tab

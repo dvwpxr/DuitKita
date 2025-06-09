@@ -193,3 +193,8 @@ body {
 .tab-content.hidden {
     display: none;
 }
+
+#expenseSearchResults ul {
+    list-style-type: none;
+    padding: 0;
+}

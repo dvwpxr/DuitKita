@@ -109,7 +109,7 @@
                             @csrf
                             <div>
                                 <label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Untuk Apa Kamuu?</label>
-                                <input type="text" id="expenseDescription" name="expenseDescription" required class="input-field" placeholder="Makan malam romantis...">
+                                <input type="text" id="expenseDescription" name="expenseDescription" required class="input-field" placeholder="Makan malam ...">
                             </div>
                             <div>
                                 <label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Berapa (Rp)?</label>
@@ -120,8 +120,22 @@
                             </button>
                         </form>
                         <div class="mt-8">
+                            {{-- BAGIAN BARU UNTUK PENCARIAN --}}
+                            <div class="mb-6">
+                                <h3 class="text-xl font-semibold text-gray-700 mb-2">Cari Pengeluaran Bulan Ini</h3>
+                                <div class="flex items-center space-x-2">
+                                    <input type="text" id="expenseSearchInput" class="input-field flex-grow" placeholder="Cari 'bensin', 'makan', dll...">
+                                    <button id="expenseSearchBtn" class="px-4 py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg shadow-sm transition-colors">Cari</button>
+                                </div>
+                                {{-- Wadah untuk menampilkan hasil pencarian --}}
+                                <div id="expenseSearchResults" class="mt-4 space-y-2">
+                                    {{-- Hasil pencarian akan ditampilkan di sini oleh JavaScript --}}
+                                </div>
+                            </div>
+                            {{-- AKHIR BAGIAN PENCARIAN --}}
+
                             <h3 class="text-xl font-semibold text-gray-700">Jejak Pengeluaran Hari Ini:</h3>
-                            <ul id="expenseList" class="mt-3 space-y-2.5 text-sm text-gray-800 max-h-60 overflow-y-auto pr-2">
+                            <ul id="expenseList" class="list-container mt-3 space-y-3">
                                 <li id="noExpensesMessage" class="list-empty-msg">Belum ada cerita pengeluaran hari ini...</li>
                             </ul>
                             <div class="total-container">
