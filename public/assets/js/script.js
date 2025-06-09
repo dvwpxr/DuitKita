@@ -916,7 +916,6 @@ function switchTab(tabName) {
 // --- Fungsi Chart ---
 async function renderFinancialSummaryChart() {
     if (!expensesChartCanvasCtx) {
-        // Pastikan context canvas sudah ada
         console.warn("Canvas context untuk chart belum siap.");
         const canvasElement = document.getElementById("expensesChart");
         if (canvasElement)
@@ -928,7 +927,6 @@ async function renderFinancialSummaryChart() {
     }
 
     if (expensesChart) {
-        // Hancurkan chart lama jika ada
         expensesChart.destroy();
         expensesChart = null;
     }
@@ -937,7 +935,6 @@ async function renderFinancialSummaryChart() {
         console.warn(
             "currentDate belum diinisialisasi untuk renderFinancialSummaryChart"
         );
-        // Sembunyikan kontainer chart jika tanggal belum ada
         const chartElementContainer =
             document.querySelector(".chart-container");
         if (chartElementContainer) chartElementContainer.style.display = "none";
@@ -947,26 +944,16 @@ async function renderFinancialSummaryChart() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 
-    // Ambil data pengeluaran DAN pemasukan untuk bulan ini
     const [expensesInMonth, incomesInMonth] = await Promise.all([
         fetchExpensesForMonth(year, month),
-        fetchIncomesForMonth(year, month), // Panggil fungsi baru untuk pemasukan
+        fetchIncomesForMonth(year, month),
     ]);
 
-    console.log(
-        `Data Pengeluaran untuk Chart ${year}-${month + 1}:`,
-        JSON.stringify(expensesInMonth)
-    );
-    console.log(
-        `Data Pemasukan untuk Chart ${year}-${month + 1}:`,
-        JSON.stringify(incomesInMonth)
-    );
-
+    // ... (Logika Anda untuk memproses data: dailyExpenseTotals, dailyIncomeTotals) ...
     const dailyExpenseTotals = {};
     const dailyIncomeTotals = {};
     const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
 
-    // Inisialisasi total harian untuk semua hari yang valid di bulan ini
     for (let i = 1; i <= daysInCurrentMonth; i++) {
         const currentDayDate = new Date(year, month, i);
         if (currentDayDate >= MIN_DATE && currentDayDate <= MAX_DATE) {
@@ -974,33 +961,22 @@ async function renderFinancialSummaryChart() {
             dailyIncomeTotals[i] = 0;
         }
     }
-
-    // Akumulasi total pengeluaran harian
     expensesInMonth.forEach((exp) => {
         if (!exp.date) return;
-        const expDate = new Date(exp.date);
-        const day = expDate.getUTCDate(); // Asumsi tanggal dari DB adalah UTC
-        if (dailyExpenseTotals.hasOwnProperty(day)) {
+        const day = new Date(exp.date).getUTCDate();
+        if (dailyExpenseTotals.hasOwnProperty(day))
             dailyExpenseTotals[day] += Number(exp.amount);
-        }
     });
-
-    // Akumulasi total pemasukan harian
     incomesInMonth.forEach((inc) => {
         if (!inc.date) return;
-        const incDate = new Date(inc.date);
-        const day = incDate.getUTCDate(); // Asumsi tanggal dari DB adalah UTC
-        if (dailyIncomeTotals.hasOwnProperty(day)) {
+        const day = new Date(inc.date).getUTCDate();
+        if (dailyIncomeTotals.hasOwnProperty(day))
             dailyIncomeTotals[day] += Number(inc.amount);
-        }
     });
 
-    // Buat label untuk sumbu X (hari dalam sebulan yang valid)
-    // Kita ambil semua keys dari salah satu objek totals (misalnya expense) karena keduanya harusnya punya keys yang sama
     const labels = Object.keys(dailyExpenseTotals)
         .map((day) => String(day))
         .sort((a, b) => parseInt(a) - parseInt(b));
-
     const expenseDataForChart = labels.map(
         (day) => dailyExpenseTotals[parseInt(day)] || 0
     );
@@ -1008,80 +984,79 @@ async function renderFinancialSummaryChart() {
         (day) => dailyIncomeTotals[parseInt(day)] || 0
     );
 
-    console.log(`Labels untuk Chart:`, JSON.stringify(labels));
-    console.log(
-        `Data Pengeluaran untuk Chart:`,
-        JSON.stringify(expenseDataForChart)
-    );
-    console.log(
-        `Data Pemasukan untuk Chart:`,
-        JSON.stringify(incomeDataForChart)
-    );
-
     const chartElementContainer = document.querySelector(".chart-container");
-
-    // Cek apakah ada data yang signifikan untuk ditampilkan
     const hasSignificantData =
         expenseDataForChart.some((val) => val > 0) ||
         incomeDataForChart.some((val) => val > 0);
 
     if (labels.length === 0 || !hasSignificantData) {
-        console.log(
-            "Tidak ada data pengeluaran atau pemasukan yang signifikan untuk ditampilkan di chart bulan ini."
-        );
         if (chartElementContainer) chartElementContainer.style.display = "none";
         return;
     }
     if (chartElementContainer) chartElementContainer.style.display = "block";
 
+    // --- PERUBAHAN UTAMA UNTUK RESPONSIVITAS DIMULAI DI SINI ---
+
+    // Deteksi apakah ini layar mobile berdasarkan lebar window
+    const isMobile = window.innerWidth < 768;
+
     expensesChart = new Chart(expensesChartCanvasCtx, {
-        type: "bar", // Tetap bar chart, atau bisa dipertimbangkan 'line'
+        type: "bar",
         data: {
             labels: labels,
             datasets: [
                 {
-                    label: "Total Pengeluaran Harian (Rp)",
+                    label: "Pengeluaran", // Label lebih pendek untuk mobile
                     data: expenseDataForChart,
-                    backgroundColor: "rgba(225, 29, 72, 0.6)", // Merah (Rose-600 Tailwind)
-                    borderColor: "rgba(190, 18, 60, 1)", // Merah lebih gelap (Rose-700 Tailwind)
+                    backgroundColor: "rgba(225, 29, 72, 0.6)", // Merah
+                    borderColor: "rgba(190, 18, 60, 1)",
                     borderWidth: 1,
-                    // stack: 'Stack 0', // Opsional: Jika ingin batang bertumpuk
+                    barPercentage: 0.8, // Membuat bar sedikit lebih gemuk
+                    categoryPercentage: 0.7, // Mengatur spasi antar kategori hari
                 },
                 {
-                    label: "Total Pemasukan Harian (Rp)",
+                    label: "Pemasukan", // Label lebih pendek untuk mobile
                     data: incomeDataForChart,
-                    backgroundColor: "rgba(22, 163, 74, 0.6)", // Hijau (Green-600 Tailwind)
-                    borderColor: "rgba(21, 128, 61, 1)", // Hijau lebih gelap (Green-700 Tailwind)
+                    backgroundColor: "rgba(22, 163, 74, 0.6)", // Hijau
+                    borderColor: "rgba(21, 128, 61, 1)",
                     borderWidth: 1,
-                    // stack: 'Stack 0', // Opsional: Jika ingin batang bertumpuk
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.7,
                 },
             ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            // Jika menggunakan stack, tambahkan ini:
-            // interaction: {
-            //   mode: 'index',
-            //   intersect: false,
-            // },
-            // stacked: true, // Untuk Chart.js v2. Untuk v3+, pindah ke scales
             scales: {
                 x: {
-                    stacked: false, // Set true jika ingin batang bertumpuk per hari
+                    stacked: false,
                     ticks: {
-                        maxRotation: 0,
-                        minRotation: 0,
-                        autoSkip: true,
-                        maxTicksLimit: 15,
+                        // Di mobile, tampilkan lebih sedikit label tanggal agar tidak berdesakan
+                        maxTicksLimit: isMobile ? 8 : 15, // Tampilkan maks 8 tick di mobile, 15 di desktop
+                        font: {
+                            size: isMobile ? 10 : 12, // Ukuran font label lebih kecil di mobile
+                        },
                     },
                 },
                 y: {
-                    stacked: false, // Set true jika ingin batang bertumpuk per hari
+                    stacked: false,
                     beginAtZero: true,
                     ticks: {
-                        callback: (value) =>
-                            "Rp " + value.toLocaleString("id-ID"),
+                        // Fungsi callback untuk format Rupiah di sumbu Y
+                        callback: (value) => {
+                            // Format angka menjadi lebih pendek (misal: 200rb, 1jt) jika angkanya besar
+                            if (value >= 1000000) {
+                                return "Rp " + value / 1000000 + "jt";
+                            }
+                            if (value >= 1000) {
+                                return "Rp " + value / 1000 + "rb";
+                            }
+                            return "Rp " + value.toLocaleString("id-ID");
+                        },
+                        font: {
+                            size: isMobile ? 10 : 12, // Ukuran font label lebih kecil di mobile
+                        },
                     },
                 },
             },
@@ -1103,8 +1078,15 @@ async function renderFinancialSummaryChart() {
                     },
                 },
                 legend: {
-                    display: true,
-                    position: "top",
+                    // Di mobile, pindahkan legenda ke bawah. Di desktop, biarkan di atas.
+                    position: isMobile ? "bottom" : "top",
+                    labels: {
+                        font: {
+                            size: 12, // Ukuran font legenda
+                        },
+                        boxWidth: 15, // Lebar kotak warna legenda
+                        padding: 20, // Jarak antar legenda
+                    },
                 },
             },
         },
