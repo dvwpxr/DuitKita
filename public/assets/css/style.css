@@ -198,3 +198,29 @@ body {
     list-style-type: none;
     padding: 0;
 }
+
+/* Gaya untuk indikator pemasukan (titik hijau) */
+.has-income::before {
+    content: "";
+    position: absolute;
+    bottom: 4px; /* Posisikan di ketinggian yang sama dengan titik pengeluaran */
+    width: 6px;
+    height: 6px;
+    background-color: #22c55e; /* Warna hijau (Tailwind green-500) */
+    border-radius: 50%;
+    /* Posisikan di tengah secara default (jika hanya ada pemasukan) */
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Penyesuaian posisi jika ada KEDUA indikator pada hari yang sama */
+
+/* Geser titik PENGELUARAN (oranye, ::after) ke kiri jika ada pemasukan juga */
+.has-expenses.has-income::after {
+    transform: translateX(-150%); /* Geser ke kiri sejauh 1.5x lebarnya */
+}
+
+/* Geser titik PEMASUKAN (hijau, ::before) ke kanan jika ada pengeluaran juga */
+.has-expenses.has-income::before {
+    transform: translateX(50%); /* Geser ke kanan sejauh 0.5x lebarnya */
+}

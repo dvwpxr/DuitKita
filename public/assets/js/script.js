@@ -281,78 +281,82 @@ async function renderCalendar() {
 
     currentMonthYearEl.textContent = `${monthNames[month]} ${year}`;
 
-    const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0=Minggu, 1=Senin, dst.
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    // ==================================================================
-    // BAGIAN YANG DITAMBAHKAN UNTUK NAMA HARI
-    // ==================================================================
+    // ... (kode untuk membuat dayHeaders dan sel kosong di awal bulan) ...
     const dayHeaders = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
     dayHeaders.forEach((header) => {
         const headerEl = document.createElement("div");
-        // Style disesuaikan dengan tema rose Anda
         headerEl.className =
             "font-semibold text-rose-800 text-sm text-center py-2";
         headerEl.textContent = header;
         calendarGrid.appendChild(headerEl);
     });
-    // ==================================================================
 
-    // Buat sel kosong untuk hari-hari sebelum tanggal 1
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
     for (let i = 0; i < firstDayOfMonth; i++) {
         const emptyCell = document.createElement("div");
         calendarGrid.appendChild(emptyCell);
     }
 
-    // Ambil data pengeluaran untuk menandai hari yang memiliki pengeluaran
-    const expensesInCurrentMonth = await fetchExpensesForMonth(year, month);
-    // SIMPAN DATA INI KE VARIABEL GLOBAL UNTUK PENCARIAN
-    currentMonthExpenses = expensesInCurrentMonth;
-    // Jika Anda ingin indikator untuk pemasukan juga, panggil fetchIncomesForMonth di sini
+    // --- PERUBAHAN UTAMA DI SINI ---
+    // Ambil data pengeluaran DAN pemasukan untuk bulan ini secara bersamaan
+    const [expensesInMonth, incomesInMonth] = await Promise.all([
+        fetchExpensesForMonth(year, month),
+        fetchIncomesForMonth(year, month), // Panggil fungsi fetch untuk pemasukan
+    ]);
+
+    // Simpan data pengeluaran untuk fitur pencarian
+    currentMonthExpenses = expensesInMonth;
+    // --- AKHIR PERUBAHAN UTAMA ---
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     // Buat sel untuk setiap hari di bulan ini
     for (let day = 1; day <= daysInMonth; day++) {
         const dayEl = document.createElement("button");
         dayEl.textContent = day;
         dayEl.className =
-            "calendar-day p-2 rounded-lg aspect-square flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 transition-colors duration-150"; // Sesuaikan style jika perlu
+            "calendar-day p-2 rounded-lg aspect-square flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 transition-colors duration-150";
         const dateValue = new Date(year, month, day);
         dateValue.setHours(0, 0, 0, 0);
 
-        if (dateValue.getTime() === today.getTime()) {
+        // ... (logika untuk highlight hari ini, disabled, dan selected state) ...
+        if (dateValue.getTime() === today.getTime())
             dayEl.classList.add("today-highlight");
-        }
-
         if (dateValue < MIN_DATE || dateValue > MAX_DATE) {
             dayEl.classList.add("disabled");
-            if (dateValue.getTime() === today.getTime()) {
+            if (dateValue.getTime() === today.getTime())
                 dayEl.classList.remove("today-highlight");
-            }
         } else {
             dayEl.onclick = () => handleDateClick(dateValue);
         }
-
         if (
             selectedDate &&
             dateValue.toDateString() === selectedDate.toDateString()
-        ) {
+        )
             dayEl.classList.add("selected");
+
+        // Tandai hari yang memiliki PENGELUARAN
+        if (
+            expensesInMonth &&
+            expensesInMonth.some(
+                (exp) => exp.date.substring(0, 10) === formatDateISO(dateValue)
+            )
+        ) {
+            dayEl.classList.add("has-expenses");
         }
 
-        if (expensesInCurrentMonth && expensesInCurrentMonth.length > 0) {
-            if (
-                expensesInCurrentMonth.some((exp) => {
-                    if (!exp.date) return false;
-                    const expenseDateOnly = exp.date.substring(0, 10);
-                    return expenseDateOnly === formatDateISO(dateValue);
-                })
-            ) {
-                dayEl.classList.add("has-expenses");
-            }
+        // Tandai hari yang memiliki PEMASUKAN
+        if (
+            incomesInMonth &&
+            incomesInMonth.some(
+                (inc) => inc.date.substring(0, 10) === formatDateISO(dateValue)
+            )
+        ) {
+            dayEl.classList.add("has-income"); // Tambahkan kelas baru ini
         }
+
         calendarGrid.appendChild(dayEl);
     }
     updateNavigationButtons();
