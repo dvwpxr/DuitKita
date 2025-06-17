@@ -197,7 +197,7 @@
         </main>
 
         <footer class="text-center mt-12 pt-6 border-t border-rose-200">
-            <p class="text-sm text-gray-500">&copy; Dibuat dengan Dava, untuk kita ♥</p>
+            <p class="text-sm text-gray-500">&copy; Dibuat dengan Dava</p>
         </footer>
     </div>
 

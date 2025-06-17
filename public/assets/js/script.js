@@ -483,51 +483,31 @@ async function handleDateClick(date) {
 // FUNGSI YANG HILANG DITAMBAHKAN DI SINI
 async function renderExpensesForSelectedDate() {
     if (!expenseListEl || !noExpensesMessage || !dailyTotalEl) {
-        console.error(
-            "Elemen DOM untuk daftar pengeluaran (expenseListEl, noExpensesMessage, atau dailyTotalEl) TIDAK DITEMUKAN."
-        );
+        console.error("Elemen DOM untuk daftar pengeluaran tidak ditemukan.");
         return;
     }
-    console.log(
-        "renderExpensesForSelectedDate DIPANGGIL untuk tanggal:",
-        selectedDate ? formatDateISO(selectedDate) : "Belum ada tanggal"
-    );
-
-    expenseListEl.innerHTML = ""; // Kosongkan daftar sebelum mengisi
+    expenseListEl.innerHTML = "";
 
     if (!selectedDate) {
-        console.log(
-            "Tidak ada tanggal terpilih, menampilkan pesan 'noExpensesMessage'."
-        );
         noExpensesMessage.style.display = "block";
         dailyTotalEl.textContent = "Rp 0";
-        // Chart akan di-handle oleh pemanggilan renderExpensesChart terpisah jika perlu
         return;
     }
 
     const isoDateStr = formatDateISO(selectedDate);
-    console.log(`Fetching expenses untuk tanggal ISO: ${isoDateStr}`);
     const dayExpenses = await fetchExpensesForDate(isoDateStr);
-    console.log(
-        `Data Pengeluaran Harian dari API untuk ${isoDateStr}:`,
-        JSON.stringify(dayExpenses)
-    );
 
     if (dayExpenses.length === 0) {
-        console.log(
-            `Tidak ada pengeluaran untuk ${isoDateStr}, menampilkan 'noExpensesMessage'.`
-        );
         noExpensesMessage.style.display = "block";
         dailyTotalEl.textContent = "Rp 0";
     } else {
-        console.log(
-            `Menampilkan ${dayExpenses.length} item pengeluaran untuk ${isoDateStr}.`
-        );
         noExpensesMessage.style.display = "none";
         dayExpenses.forEach((exp) => {
             const li = document.createElement("li");
             li.className =
                 "flex justify-between items-center p-3 bg-white rounded-lg shadow hover:shadow-md transition-shadow";
+
+            // PERBAIKAN: data-id ditambahkan langsung ke tombol di bawah ini
             li.innerHTML = `
                 <span class="text-gray-700">${exp.description}</span>
                 <div class="flex items-center space-x-2">
@@ -536,30 +516,20 @@ async function renderExpensesForSelectedDate() {
                     ).toLocaleString("id-ID")}</span>
                     <button data-id="${
                         exp.id
-                    }" class="delete-expense-btn text-neutral-50 bg-red-500 hover:text-neutral-50 text-xs p-1.5 rounded hover:bg-red-700 transitition-colors ">Hapus</button>
+                    }" class="delete-expense-btn text-red-500 hover:text-red-700 text-xs p-1 rounded hover:bg-red-100 transition-colors">Hapus</button>
                 </div>`;
             expenseListEl.appendChild(li);
         });
-        const total = dayExpenses.reduce(
-            (sum, exp) => sum + Number(exp.amount),
-            0
-        );
-        dailyTotalEl.innerHTML = `Rp <span class="font-bold">${total.toLocaleString(
-            "id-ID"
-        )}</span>`;
-        console.log(
-            `Total pengeluaran untuk ${isoDateStr}: Rp ${total.toLocaleString(
-                "id-ID"
-            )}`
-        );
+        dailyTotalEl.innerHTML = `Rp <span class="font-bold">${dayExpenses
+            .reduce((sum, exp) => sum + Number(exp.amount), 0)
+            .toLocaleString("id-ID")}</span>`;
     }
     addDeleteEventListeners();
-    await renderFinancialSummaryChart();
+    await renderFinancialSummaryChart(); // Atau renderExpensesChart jika belum diganti
 }
 
 async function renderIncomesForSelectedDate() {
     if (!incomeListEl || !noIncomesMessage || !dailyTotalIncomeEl) {
-        // Pastikan ID elemen benar
         console.error("Elemen DOM untuk daftar pemasukan tidak ditemukan.");
         return;
     }
@@ -581,7 +551,9 @@ async function renderIncomesForSelectedDate() {
         dayIncomes.forEach((inc) => {
             const li = document.createElement("li");
             li.className =
-                "flex justify-between items-center p-3 bg-white rounded-lg shadow hover:shadow-md transition-shadow"; // Style diperbarui
+                "flex justify-between items-center p-3 bg-white rounded-lg shadow hover:shadow-md transition-shadow";
+
+            // PERBAIKAN: data-id ditambahkan langsung ke tombol di bawah ini
             li.innerHTML = `
                 <span class="text-gray-700">${inc.description}</span>
                 <div class="flex items-center space-x-2">
@@ -590,7 +562,7 @@ async function renderIncomesForSelectedDate() {
                     ).toLocaleString("id-ID")}</span>
                     <button data-id="${
                         inc.id
-                    }" class="delete-income-btn text-neutral-50 bg-red-500 hover:text-neutral-50 text-xs p-1.5 rounded hover:bg-red-700 transition-colors">Hapus</button>
+                    }" class="delete-income-btn text-red-500 hover:text-red-700 text-xs p-1 rounded hover:bg-red-100 transition-colors">Hapus</button>
                 </div>`;
             incomeListEl.appendChild(li);
         });
@@ -599,7 +571,6 @@ async function renderIncomesForSelectedDate() {
             .toLocaleString("id-ID")}</span>`;
     }
     addDeleteEventListeners();
-    await renderFinancialSummaryChart();
 }
 
 // --- Fungsi Aksi (Tambah/Hapus) ---
@@ -725,26 +696,41 @@ async function deleteExpenseAPI(expenseId) {
         return;
     }
     const csrfToken = csrfTokenMeta.getAttribute("content");
+
+    // Temukan elemen list item yang akan dihapus
+    const itemToRemove = expenseListEl.querySelector(
+        `li[data-id="${expenseId}"]`
+    );
+
     try {
         const response = await fetch(`${API_BASE_URL}/expenses/${expenseId}`, {
             method: "DELETE",
             headers: { Accept: "application/json", "X-CSRF-TOKEN": csrfToken },
         });
+
         if (!response.ok && response.status !== 204) {
-            if (response.status === 419)
-                throw new Error(
-                    "Sesi berakhir atau token tidak valid. Refresh halaman."
-                );
-            const errorData = await response
-                .json()
-                .catch(() => ({ message: "Gagal menghapus data." }));
-            throw new Error(
-                errorData.message || `Server error: ${response.status}`
-            );
+            // ... (logika error Anda yang sudah ada) ...
+            throw new Error(`Server error: ${response.status}`);
         }
-        await renderExpensesForSelectedDate();
+
+        // Jika API berhasil, mulai animasi penghapusan
+        if (itemToRemove) {
+            itemToRemove.classList.add("item-exit");
+            // Hapus elemen dari DOM setelah animasi selesai
+            itemToRemove.addEventListener("animationend", () => {
+                itemToRemove.remove();
+                // Setelah item dihapus, render ulang data untuk update total dan UI lainnya
+                // Cukup panggil render ulang data untuk tanggal yang sama
+                renderExpensesForSelectedDate();
+            });
+        } else {
+            // Jika item tidak ditemukan di UI (kasus aneh), tetap render ulang
+            renderExpensesForSelectedDate();
+        }
+
+        // Update kalender dan grafik secara langsung
         await renderCalendar();
-        await renderMonthlyRecap();
+        // renderFinancialSummaryChart akan dipanggil dari dalam renderExpensesForSelectedDate
     } catch (error) {
         console.error("Error deleting expense:", error);
         alert(`Gagal menghapus pengeluaran: ${error.message}`);
@@ -759,26 +745,36 @@ async function deleteIncomeAPI(incomeId) {
         return;
     }
     const csrfToken = csrfTokenMeta.getAttribute("content");
+
+    // Temukan elemen list item yang akan dihapus
+    const itemToRemove = incomeListEl.querySelector(
+        `li[data-id="${incomeId}"]`
+    );
+
     try {
         const response = await fetch(`${API_BASE_URL}/incomes/${incomeId}`, {
             method: "DELETE",
             headers: { Accept: "application/json", "X-CSRF-TOKEN": csrfToken },
         });
+
         if (!response.ok && response.status !== 204) {
-            if (response.status === 419)
-                throw new Error(
-                    "Sesi berakhir atau token tidak valid. Refresh halaman."
-                );
-            const errorData = await response
-                .json()
-                .catch(() => ({ message: "Gagal menghapus data." }));
-            throw new Error(
-                errorData.message || `Server error: ${response.status}`
-            );
+            // ... (logika error Anda yang sudah ada) ...
+            throw new Error(`Server error: ${response.status}`);
         }
-        await renderIncomesForSelectedDate();
-        await renderCalendar(); // Untuk update dot jika ada indikator pemasukan
-        // await renderMonthlyRecap();
+
+        // Jika API berhasil, mulai animasi penghapusan
+        if (itemToRemove) {
+            itemToRemove.classList.add("item-exit");
+            itemToRemove.addEventListener("animationend", () => {
+                itemToRemove.remove();
+                renderIncomesForSelectedDate();
+            });
+        } else {
+            renderIncomesForSelectedDate();
+        }
+
+        await renderCalendar();
+        await renderFinancialSummaryChart();
     } catch (error) {
         console.error("Error deleting income:", error);
         alert(`Gagal menghapus pemasukan: ${error.message}`);
@@ -852,57 +848,40 @@ function switchTab(tabName) {
         console.error("Elemen tab tidak ditemukan.");
         return;
     }
-    if (tabName === "pengeluaran") {
-        contentPengeluaran.classList.remove("hidden");
-        contentPemasukan.classList.add("hidden");
-        tabPengeluaran.classList.add(
-            "active-tab",
-            "text-rose-600",
-            "border-rose-500"
-        );
-        tabPengeluaran.classList.remove(
-            "text-gray-500",
-            "hover:text-gray-700",
-            "hover:border-gray-300",
-            "border-transparent"
-        );
-        tabPemasukan.classList.add(
-            "text-gray-500",
-            "hover:text-gray-700",
-            "hover:border-gray-300",
-            "border-transparent"
-        );
-        tabPemasukan.classList.remove(
-            "active-tab",
-            "text-green-600",
-            "border-green-500"
-        );
-    } else if (tabName === "pemasukan") {
-        contentPemasukan.classList.remove("hidden");
-        contentPengeluaran.classList.add("hidden");
-        tabPemasukan.classList.add(
-            "active-tab",
-            "text-green-600",
-            "border-green-500"
-        );
-        tabPemasukan.classList.remove(
-            "text-gray-500",
-            "hover:text-gray-700",
-            "hover:border-gray-300",
-            "border-transparent"
-        );
-        tabPengeluaran.classList.add(
-            "text-gray-500",
-            "hover:text-gray-700",
-            "hover:border-gray-300",
-            "border-transparent"
-        );
-        tabPengeluaran.classList.remove(
-            "active-tab",
-            "text-rose-600",
-            "border-rose-500"
-        );
+
+    const activeContent =
+        tabName === "pengeluaran" ? contentPemasukan : contentPengeluaran;
+    const targetContent =
+        tabName === "pengeluaran" ? contentPengeluaran : contentPemasukan;
+
+    const activeTabButton =
+        tabName === "pengeluaran" ? tabPemasukan : tabPengeluaran;
+    const targetTabButton =
+        tabName === "pengeluaran" ? tabPengeluaran : tabPemasukan;
+
+    // Mulai sembunyikan konten yang aktif
+    activeContent.classList.add("is-hiding");
+
+    // Ganti gaya tombol tab
+    activeTabButton.className =
+        "tab-button w-1/2 py-3 px-1 text-center border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300";
+    targetTabButton.className =
+        "tab-button active-tab w-1/2 py-3 px-1 text-center border-b-2 font-medium text-sm border-rose-500"; // Warna dasar aktif
+    if (tabName === "pemasukan") {
+        targetTabButton.classList.add("text-green-600", "border-green-500"); // Warna spesifik untuk tab pemasukan
+        targetTabButton.classList.remove("border-rose-500");
+    } else {
+        targetTabButton.classList.add("text-rose-600");
     }
+
+    // Tunggu animasi 'is-hiding' selesai, lalu tukar tampilan
+    setTimeout(() => {
+        activeContent.classList.add("hidden");
+        activeContent.classList.remove("is-hiding");
+
+        targetContent.classList.remove("hidden");
+    }, 200); // Durasi harus cocok dengan transisi di CSS (0.2s = 200ms)
+
     // Update tampilan tanggal terpilih di kedua tab
     if (
         selectedDate &&

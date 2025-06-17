@@ -242,3 +242,58 @@ body {
 .has-expenses.has-income::before {
     transform: translateX(50%); /* Geser ke kanan sejauh 0.5x lebarnya */
 }
+
+/* ================================================== */
+/* ==       Animasi & Transisi Baru (Mulai)        == */
+/* ================================================== */
+
+/* Definisi animasi untuk item yang baru ditambahkan */
+@keyframes item-enter-animation {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Kelas untuk menerapkan animasi "masuk" */
+.item-enter {
+    animation: item-enter-animation 0.4s ease-out forwards;
+}
+
+/* Definisi animasi untuk item yang dihapus */
+@keyframes item-exit-animation {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+        height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        border: 0;
+    }
+}
+
+/* Kelas untuk menerapkan animasi "keluar" */
+.item-exit {
+    animation: item-exit-animation 0.3s ease-in forwards;
+}
+
+/* Styling untuk transisi tab */
+.tab-content {
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+/* Kelas sementara saat tab sedang proses disembunyikan */
+.tab-content.is-hiding {
+    opacity: 0;
+    transform: translateX(-10px);
+}
