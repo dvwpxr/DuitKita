@@ -268,6 +268,8 @@ async function fetchExpensesForMonth(year, monthZeroIndexed) {
 // --- Fungsi Render UI ---
 // Ganti fungsi renderCalendar Anda dengan yang ini:
 
+// Ganti fungsi renderCalendar Anda dengan versi yang lebih lengkap ini:
+
 async function renderCalendar() {
     if (!calendarGrid || !currentMonthYearEl || !currentDate) {
         console.warn(

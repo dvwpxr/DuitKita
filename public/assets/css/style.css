@@ -200,6 +200,12 @@ body {
 }
 
 /* Gaya untuk indikator pemasukan (titik hijau) */
+
+.has-expenses,
+.has-income {
+    position: relative; /* Diperlukan agar ::after dan ::before bisa diposisikan */
+}
+
 .has-income::before {
     content: "";
     position: absolute;
@@ -211,6 +217,18 @@ body {
     /* Posisikan di tengah secara default (jika hanya ada pemasukan) */
     left: 50%;
     transform: translateX(-50%);
+}
+
+.has-expenses::after {
+    content: "";
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: #fb923c; /* orange-400 */
+    border-radius: 50%;
 }
 
 /* Penyesuaian posisi jika ada KEDUA indikator pada hari yang sama */
