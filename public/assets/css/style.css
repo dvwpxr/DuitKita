@@ -254,9 +254,9 @@ body {
 /* Kontainer grafik yang sebenarnya, yang akan lebih lebar dari layar HP */
 .chart-container-scrollable {
     position: relative;
-    height: 350px; /* Tinggi grafik */
+    height: 300px; /* Tinggi grafik */
     width: 100%;
-    min-width: 700px; /* INI KUNCINYA: Lebar minimum grafik, paksa scroll di layar kecil */
+    min-width: 500px; /* INI KUNCINYA: Lebar minimum grafik, paksa scroll di layar kecil */
 }
 
 /* Styling untuk scrollbar agar lebih tipis dan tidak mengganggu (opsional) */
@@ -273,6 +273,81 @@ body {
 }
 .horizontal-scroll-wrapper::-webkit-scrollbar-thumb:hover {
     background: #9333ea; /* purple-600 */
+}
+
+.recap-card {
+    background-color: white;
+    padding: 1rem; /* 16px */
+    border-radius: 0.75rem; /* 12px */
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    transition: all 0.2s ease-in-out;
+}
+
+.recap-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+        0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.recap-card .month-year {
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 700; /* font-bold */
+    color: #4338ca; /* indigo-700 */
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e0e7ff; /* indigo-100 */
+}
+
+.recap-card .details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem; /* Jarak antar baris */
+}
+
+.recap-card .details .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem; /* text-sm */
+}
+
+.recap-card .details .label {
+    color: #4b5563; /* gray-600 */
+    display: flex;
+    align-items: center;
+}
+
+/* Ikon kecil untuk setiap baris */
+.recap-card .details .label::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 8px;
+    border-radius: 50%;
+}
+
+.recap-card .details .income .label::before {
+    background-color: #22c55e; /* green-500 */
+}
+.recap-card .details .expense .label::before {
+    background-color: #ef4444; /* red-500 */
+}
+.recap-card .details .balance .label::before {
+    background-color: #6366f1; /* indigo-500 */
+}
+
+.recap-card .details .amount {
+    font-weight: 600; /* font-semibold */
+}
+.recap-card .details .income .amount {
+    color: #16a34a; /* green-600 */
+}
+.recap-card .details .expense .amount {
+    color: #dc2626; /* red-600 */
+}
+.recap-card .details .balance .amount {
+    color: #4338ca; /* indigo-700 */
 }
 
 /* ================================================== */

@@ -181,7 +181,7 @@
             <div class="lg:col-span-3 mt-0 lg:mt-0"> {{-- Hapus space-y-8 dari section sebelumnya, atur margin di sini jika perlu --}}
                 <div class="p-6 bg-purple-50 rounded-xl border border-purple-200 shadow-sm">
                     <h2 class="text-2xl font-semibold text-purple-700 mb-3">Grafik Keuangan Kamu nih.</h2>
-                    <p class="text-sm text-gray-500 mb-6">Visualisasikan pengeluaran bulanan. Di layar kecil, grafik bisa digeser ke samping.</p>
+                    <p class="text-sm text-gray-500 mb-6">Grafik pengeluaran bulanan.</p>
 
                     {{-- WRAPPER BARU UNTUK SCROLL HORIZONTAL --}}
                     <div class="horizontal-scroll-wrapper">
@@ -190,12 +190,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="lg:col-span-3 mt-8"> {{-- Pastikan ini ada di dalam <main class="grid ..."> --}}
+                <div class="lg:col-span-3 mt-8">
                     <div class="p-6 bg-indigo-50 rounded-xl border border-indigo-200 shadow-sm">
-                        <h2 class="text-2xl font-semibold text-indigo-700 mb-4">Rekapan Pengeluaran Bulanan Kamu nih.</h2>
-                        <div id="monthlyRecapList" class="space-y-3">
+                        {{-- GANTI JUDUL DI SINI --}}
+                        <h2 class="text-2xl font-semibold text-indigo-700 mb-4">Rekapan Keuangan Bulanan</h2>
+                        <div id="monthlyRecapList" class="space-y-4"> {{-- Ubah space-y-3 menjadi 4 untuk jarak lebih --}}
                             {{-- Data rekapan akan dimasukkan di sini oleh JavaScript --}}
-                            <p id="noMonthlyRecapMessage" class="text-gray-500 italic">Memuat data rekapan atau belum ada data...</p>
+                            <p id="noMonthlyRecapMessage" class="text-gray-500 italic">Memuat data rekapan...</p>
                         </div>
                     </div>
                 </div>

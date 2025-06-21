@@ -988,7 +988,6 @@ async function renderFinancialSummaryChart() {
                     borderColor: "rgba(190, 18, 60, 1)",
                     borderWidth: 1,
                     borderRadius: 4,
-                    // PERUBAHAN: Menyesuaikan lebar batang
                     barPercentage: 0.7,
                     categoryPercentage: 0.6,
                 },
@@ -999,7 +998,6 @@ async function renderFinancialSummaryChart() {
                     borderColor: "rgba(21, 128, 61, 1)",
                     borderWidth: 1,
                     borderRadius: 4,
-                    // PERUBAHAN: Menyesuaikan lebar batang
                     barPercentage: 0.7,
                     categoryPercentage: 0.6,
                 },
@@ -1008,16 +1006,19 @@ async function renderFinancialSummaryChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            // PERUBAHAN KUNCI: Membuat interaksi lebih mudah
             interaction: {
-                mode: "index", // Menemukan item pada indeks (kolom) yang sama
-                intersect: false, // PENTING: Tooltip akan muncul meski tidak menyentuh batang persis
+                mode: "index",
+                intersect: true,
             },
             scales: {
                 x: {
                     stacked: false,
                     ticks: {
                         font: { size: 12 },
+                        // --- INI PERUBAHANNYA ---
+                        minRotation: 0,
+                        maxRotation: 0,
+                        // ------------------------
                     },
                 },
                 y: {
@@ -1045,13 +1046,12 @@ async function renderFinancialSummaryChart() {
                                 context.parsed.y !== null &&
                                 context.parsed.y > 0
                             ) {
-                                // Hanya tampilkan jika > 0
                                 label +=
                                     "Rp " +
                                     context.parsed.y.toLocaleString("id-ID");
                                 return label;
                             }
-                            return null; // Sembunyikan tooltip untuk data bernilai 0
+                            return null;
                         },
                     },
                 },
@@ -1069,9 +1069,10 @@ async function renderFinancialSummaryChart() {
 }
 
 // --- Fungsi Rekapan Bulanan ---
-async function renderMonthlyRecap() {
+async function renderFinancialRecaps() {
     const recapListEl = document.getElementById("monthlyRecapList");
     const noRecapMessageEl = document.getElementById("noMonthlyRecapMessage");
+
     if (!recapListEl || !noRecapMessageEl) {
         console.error("Elemen untuk rekapan bulanan tidak ditemukan.");
         return;
@@ -1079,14 +1080,10 @@ async function renderMonthlyRecap() {
 
     noRecapMessageEl.textContent = "Memuat data rekapan...";
     noRecapMessageEl.style.display = "block";
-    recapListEl
-        .querySelectorAll(".recap-item")
-        .forEach((item) => item.remove());
+    recapListEl.innerHTML = ""; // Kosongkan daftar yang mungkin sudah ada
 
     try {
-        const response = await fetch(
-            `${API_BASE_URL}/expenses/monthly-summary`
-        );
+        const response = await fetch(`${API_BASE_URL}/financial-summary`); // Panggil endpoint BARU
         if (!response.ok) {
             const errorText = await response
                 .text()
@@ -1094,27 +1091,56 @@ async function renderMonthlyRecap() {
             throw new Error(`API Error (${response.status}): ${errorText}`);
         }
         const summaries = await response.json();
+
         if (summaries.length === 0) {
             noRecapMessageEl.textContent =
-                "Belum ada data pengeluaran untuk direkap.";
+                "Belum ada data keuangan untuk direkap.";
             return;
         }
+
         noRecapMessageEl.style.display = "none";
+
         summaries.forEach((summary) => {
             const itemDiv = document.createElement("div");
-            itemDiv.className =
-                "recap-item p-4 bg-white rounded-lg shadow-md flex flex-col sm:flex-row justify-between sm:items-center transition-all hover:shadow-lg hover:scale-[1.01]";
+            itemDiv.className = "recap-card"; // Gunakan kelas CSS baru kita
+
+            const balanceIsPositive = summary.balance >= 0;
+
             itemDiv.innerHTML = `
-                <span class="font-semibold text-gray-800 text-lg mb-1 sm:mb-0">${
-                    summary.month_name
-                } ${summary.year}</span>
-                <span class="text-indigo-600 font-bold text-lg">Rp ${Number(
-                    summary.total_amount
-                ).toLocaleString("id-ID")}</span>`;
+                <div class="month-year">${summary.month_name} ${
+                summary.year
+            }</div>
+                <div class="details">
+                    <div class="row income">
+                        <span class="label">Pemasukan</span>
+                        <span class="amount">Rp ${Number(
+                            summary.total_incomes
+                        ).toLocaleString("id-ID")}</span>
+                    </div>
+                    <div class="row expense">
+                        <span class="label">Pengeluaran</span>
+                        <span class="amount">Rp ${Number(
+                            summary.total_expenses
+                        ).toLocaleString("id-ID")}</span>
+                    </div>
+                    <div class="row balance">
+                        <span class="label">Saldo</span>
+                        <span class="amount ${
+                            balanceIsPositive
+                                ? "text-indigo-600"
+                                : "text-red-600"
+                        }">
+                            ${balanceIsPositive ? "" : "- "}Rp ${Math.abs(
+                summary.balance
+            ).toLocaleString("id-ID")}
+                        </span>
+                    </div>
+                </div>
+            `;
             recapListEl.appendChild(itemDiv);
         });
     } catch (error) {
-        console.error("Fetch error for monthly recap:", error);
+        console.error("Fetch error for financial recaps:", error);
         noRecapMessageEl.textContent = `Terjadi kesalahan: ${error.message}`;
         noRecapMessageEl.className = "text-red-500 italic";
     }
@@ -1141,6 +1167,6 @@ async function initializeApp() {
 
     await renderCalendar();
     await handleDateClick(initialDateToSelect); // Ini akan memanggil renderExpensesForSelectedDate dan renderIncomesForSelectedDate
-    await renderMonthlyRecap();
+    await renderFinancialRecaps();
     switchTab("pengeluaran"); // Set tab default
 }
