@@ -916,20 +916,19 @@ async function renderFinancialSummaryChart() {
         console.warn(
             "currentDate belum diinisialisasi untuk renderFinancialSummaryChart"
         );
-        const chartElementContainer =
-            document.querySelector(".chart-container");
-        if (chartElementContainer) chartElementContainer.style.display = "none";
         return;
     }
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 
+    // Ambil data pengeluaran DAN pemasukan untuk bulan ini
     const [expensesInMonth, incomesInMonth] = await Promise.all([
         fetchExpensesForMonth(year, month),
         fetchIncomesForMonth(year, month),
     ]);
 
+    // --- KEMBALI MENGGUNAKAN LOGIKA HARIAN UNTUK SEMUA UKURAN LAYAR ---
     const dailyExpenseTotals = {};
     const dailyIncomeTotals = {};
     const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
@@ -941,12 +940,14 @@ async function renderFinancialSummaryChart() {
             dailyIncomeTotals[i] = 0;
         }
     }
+
     expensesInMonth.forEach((exp) => {
         if (!exp.date) return;
         const day = new Date(exp.date).getUTCDate();
         if (dailyExpenseTotals.hasOwnProperty(day))
             dailyExpenseTotals[day] += Number(exp.amount);
     });
+
     incomesInMonth.forEach((inc) => {
         if (!inc.date) return;
         const day = new Date(inc.date).getUTCDate();
@@ -964,7 +965,9 @@ async function renderFinancialSummaryChart() {
         (day) => dailyIncomeTotals[parseInt(day)] || 0
     );
 
-    const chartElementContainer = document.querySelector(".chart-container");
+    const chartElementContainer = document.querySelector(
+        ".horizontal-scroll-wrapper"
+    ); // Targetkan wrapper baru
     const hasSignificantData =
         expenseDataForChart.some((val) => val > 0) ||
         incomeDataForChart.some((val) => val > 0);
@@ -975,9 +978,7 @@ async function renderFinancialSummaryChart() {
     }
     if (chartElementContainer) chartElementContainer.style.display = "block";
 
-    // --- PERUBAHAN UTAMA UNTUK RESPONSIVITAS DIMULAI DI SINI ---
-
-    // Deteksi apakah ini layar mobile berdasarkan lebar window
+    // Deteksi mobile untuk opsi yang spesifik mobile (seperti posisi legenda)
     const isMobile = window.innerWidth < 768;
 
     expensesChart = new Chart(expensesChartCanvasCtx, {
@@ -986,54 +987,51 @@ async function renderFinancialSummaryChart() {
             labels: labels,
             datasets: [
                 {
-                    label: "Pengeluaran", // Label lebih pendek untuk mobile
+                    label: "Pengeluaran",
                     data: expenseDataForChart,
-                    backgroundColor: "rgba(225, 29, 72, 0.6)", // Merah
+                    backgroundColor: "rgba(225, 29, 72, 0.7)", // Merah
                     borderColor: "rgba(190, 18, 60, 1)",
                     borderWidth: 1,
-                    barPercentage: 0.8, // Membuat bar sedikit lebih gemuk
-                    categoryPercentage: 0.7, // Mengatur spasi antar kategori hari
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.6, // Beri sedikit lebih banyak ruang antar bar
                 },
                 {
-                    label: "Pemasukan", // Label lebih pendek untuk mobile
+                    label: "Pemasukan",
                     data: incomeDataForChart,
-                    backgroundColor: "rgba(22, 163, 74, 0.6)", // Hijau
+                    backgroundColor: "rgba(22, 163, 74, 0.7)", // Hijau
                     borderColor: "rgba(21, 128, 61, 1)",
                     borderWidth: 1,
+                    borderRadius: 4,
                     barPercentage: 0.8,
-                    categoryPercentage: 0.7,
+                    categoryPercentage: 0.6,
                 },
             ],
         },
         options: {
             responsive: true,
+            // PENTING: maintainAspectRatio: false agar chart bisa mengisi kontainer scroll
             maintainAspectRatio: false,
             scales: {
                 x: {
                     stacked: false,
                     ticks: {
-                        // Di mobile, tampilkan lebih sedikit label tanggal agar tidak berdesakan
-                        maxTicksLimit: isMobile ? 8 : 15, // Tampilkan maks 8 tick di mobile, 15 di desktop
-                        font: {
-                            size: isMobile ? 10 : 12, // Ukuran font label lebih kecil di mobile
-                        },
+                        // Tidak perlu maxTicksLimit karena sekarang bisa discroll
+                        font: { size: 12 },
                     },
                 },
                 y: {
                     stacked: false,
                     beginAtZero: true,
                     ticks: {
-                        // Fungsi callback untuk format Rupiah di sumbu Y menjadi lebih pendek
                         callback: (value) => {
                             if (value >= 1000000)
                                 return "Rp " + value / 1000000 + "jt";
                             if (value >= 1000)
                                 return "Rp " + value / 1000 + "rb";
-                            return "Rp " + value.toLocaleString("id-ID");
+                            return "Rp " + value;
                         },
-                        font: {
-                            size: isMobile ? 10 : 12, // Ukuran font label lebih kecil di mobile
-                        },
+                        font: { size: 10 }, // Ukuran font sumbu Y bisa tetap kecil
                     },
                 },
             },
@@ -1042,25 +1040,19 @@ async function renderFinancialSummaryChart() {
                     callbacks: {
                         label: function (context) {
                             let label = context.dataset.label || "";
-                            if (label) {
-                                label += ": ";
-                            }
-                            if (context.parsed.y !== null) {
+                            if (label) label += ": ";
+                            if (context.parsed.y !== null)
                                 label +=
                                     "Rp " +
                                     context.parsed.y.toLocaleString("id-ID");
-                            }
                             return label;
                         },
                     },
                 },
                 legend: {
-                    // Di mobile, pindahkan legenda ke bawah. Di desktop, biarkan di atas.
-                    position: isMobile ? "bottom" : "top",
+                    position: isMobile ? "bottom" : "top", // Legenda tetap responsif
                     labels: {
-                        font: {
-                            size: 12,
-                        },
+                        font: { size: 12 },
                         boxWidth: 15,
                         padding: 20,
                     },

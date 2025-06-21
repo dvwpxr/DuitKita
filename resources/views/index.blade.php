@@ -181,9 +181,13 @@
             <div class="lg:col-span-3 mt-0 lg:mt-0"> {{-- Hapus space-y-8 dari section sebelumnya, atur margin di sini jika perlu --}}
                 <div class="p-6 bg-purple-50 rounded-xl border border-purple-200 shadow-sm">
                     <h2 class="text-2xl font-semibold text-purple-700 mb-3">Grafik Keuangan Kamu nih.</h2>
-                    <p class="text-sm text-gray-500 mb-6">Visualisasikan pengeluaran bulanan.</p>
-                    <div class="chart-container">
-                        <canvas id="expensesChart"></canvas>
+                    <p class="text-sm text-gray-500 mb-6">Visualisasikan pengeluaran bulanan. Di layar kecil, grafik bisa digeser ke samping.</p>
+
+                    {{-- WRAPPER BARU UNTUK SCROLL HORIZONTAL --}}
+                    <div class="horizontal-scroll-wrapper">
+                        <div class="chart-container-scrollable">
+                            <canvas id="expensesChart"></canvas>
+                        </div>
                     </div>
                 </div>
                 <div class="lg:col-span-3 mt-8"> {{-- Pastikan ini ada di dalam <main class="grid ..."> --}}

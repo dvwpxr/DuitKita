@@ -243,6 +243,38 @@ body {
     transform: translateX(50%); /* Geser ke kanan sejauh 0.5x lebarnya */
 }
 
+/* Wrapper untuk scroll horizontal pada grafik */
+.horizontal-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto; /* Memungkinkan scroll horizontal */
+    -webkit-overflow-scrolling: touch; /* Scroll lebih mulus di iOS */
+    padding-bottom: 8px; /* Memberi sedikit ruang untuk scrollbar */
+}
+
+/* Kontainer grafik yang sebenarnya, yang akan lebih lebar dari layar HP */
+.chart-container-scrollable {
+    position: relative;
+    height: 350px; /* Tinggi grafik */
+    width: 100%;
+    min-width: 800px; /* INI KUNCINYA: Lebar minimum grafik, paksa scroll di layar kecil */
+}
+
+/* Styling untuk scrollbar agar lebih tipis dan tidak mengganggu (opsional) */
+.horizontal-scroll-wrapper::-webkit-scrollbar {
+    height: 6px;
+}
+.horizontal-scroll-wrapper::-webkit-scrollbar-track {
+    background: #e9d5ff; /* purple-100 */
+    border-radius: 10px;
+}
+.horizontal-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: #a855f7; /* purple-500 */
+    border-radius: 10px;
+}
+.horizontal-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #9333ea; /* purple-600 */
+}
+
 /* ================================================== */
 /* ==       Animasi & Transisi Baru (Mulai)        == */
 /* ================================================== */
