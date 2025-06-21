@@ -1008,7 +1008,7 @@ async function renderFinancialSummaryChart() {
             maintainAspectRatio: false,
             interaction: {
                 mode: "index",
-                intersect: true,
+                intersect: false,
             },
             scales: {
                 x: {

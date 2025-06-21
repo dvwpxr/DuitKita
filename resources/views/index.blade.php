@@ -65,7 +65,7 @@
         {{-- Judul dengan font yang lebih menarik (jika menggunakan Google Fonts) --}}
         <header class="mb-10 text-center">
             <h1 class="text-4xl sm:text-5xl font-bold text-rose-600" style="font-family: 'Lato';">Catatan Pengeluaran Kamu</h1>
-            <p class="text-gray-500 mt-2 text-sm">Kelola keuangan bersama yaa</p>
+            <p class="text-gray-500 mt-2 text-sm">Kelola keuangan</p>
         </header>
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
