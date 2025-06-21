@@ -930,7 +930,6 @@ async function renderFinancialSummaryChart() {
         fetchIncomesForMonth(year, month),
     ]);
 
-    // ... (Logika Anda untuk memproses data: dailyExpenseTotals, dailyIncomeTotals) ...
     const dailyExpenseTotals = {};
     const dailyIncomeTotals = {};
     const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
@@ -991,8 +990,8 @@ async function renderFinancialSummaryChart() {
                     data: expenseDataForChart,
                     backgroundColor: "rgba(225, 29, 72, 0.6)", // Merah
                     borderColor: "rgba(190, 18, 60, 1)",
-                    borderWidth: 2,
-                    barPercentage: 1.3, // Membuat bar sedikit lebih gemuk
+                    borderWidth: 1,
+                    barPercentage: 0.8, // Membuat bar sedikit lebih gemuk
                     categoryPercentage: 0.7, // Mengatur spasi antar kategori hari
                 },
                 {
@@ -1024,15 +1023,12 @@ async function renderFinancialSummaryChart() {
                     stacked: false,
                     beginAtZero: true,
                     ticks: {
-                        // Fungsi callback untuk format Rupiah di sumbu Y
+                        // Fungsi callback untuk format Rupiah di sumbu Y menjadi lebih pendek
                         callback: (value) => {
-                            // Format angka menjadi lebih pendek (misal: 200rb, 1jt) jika angkanya besar
-                            if (value >= 1000000) {
+                            if (value >= 1000000)
                                 return "Rp " + value / 1000000 + "jt";
-                            }
-                            if (value >= 1000) {
+                            if (value >= 1000)
                                 return "Rp " + value / 1000 + "rb";
-                            }
                             return "Rp " + value.toLocaleString("id-ID");
                         },
                         font: {
@@ -1063,10 +1059,10 @@ async function renderFinancialSummaryChart() {
                     position: isMobile ? "bottom" : "top",
                     labels: {
                         font: {
-                            size: 12, // Ukuran font legenda
+                            size: 12,
                         },
-                        boxWidth: 15, // Lebar kotak warna legenda
-                        padding: 20, // Jarak antar legenda
+                        boxWidth: 15,
+                        padding: 20,
                     },
                 },
             },

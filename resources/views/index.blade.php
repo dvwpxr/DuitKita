@@ -120,8 +120,18 @@
                             </button>
                         </form>
                         <div class="mt-8">
+
+                            <h3 class="text-xl font-semibold text-gray-700">Jejak Pengeluaran Hari Ini:</h3>
+
+                            <ul id="expenseList" class="list-container mt-3 space-y-3">
+                                <li id="noExpensesMessage" class="list-empty-msg">Belum ada cerita pengeluaran hari ini...</li>
+                            </ul>
+                            <div class="total-container">
+                                <p class="total-text">Total Hari Ini: <span id="dailyTotal" class="total-amount-expense">Rp 0</span></p>
+                            </div>
                             {{-- BAGIAN BARU UNTUK PENCARIAN --}}
-                            <div class="mb-6">
+                            <div class="mb-2 mt-12">
+                                {{-- Judul dan input pencarian --}}
                                 <h3 class="text-xl font-semibold text-gray-700 mb-2">Cari Pengeluaran Bulan Ini</h3>
                                 <div class="flex items-center space-x-2">
                                     <input type="text" id="expenseSearchInput" class="input-field flex-grow" placeholder="Cari 'bensin', 'makan', dll...">
@@ -133,14 +143,6 @@
                                 </div>
                             </div>
                             {{-- AKHIR BAGIAN PENCARIAN --}}
-
-                            <h3 class="text-xl font-semibold text-gray-700">Jejak Pengeluaran Hari Ini:</h3>
-                            <ul id="expenseList" class="list-container mt-3 space-y-3">
-                                <li id="noExpensesMessage" class="list-empty-msg">Belum ada cerita pengeluaran hari ini...</li>
-                            </ul>
-                            <div class="total-container">
-                                <p class="total-text">Total Hari Ini: <span id="dailyTotal" class="total-amount-expense">Rp 0</span></p>
-                            </div>
                         </div>
                     </div>
 
