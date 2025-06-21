@@ -256,7 +256,7 @@ body {
     position: relative;
     height: 350px; /* Tinggi grafik */
     width: 100%;
-    min-width: 800px; /* INI KUNCINYA: Lebar minimum grafik, paksa scroll di layar kecil */
+    min-width: 700px; /* INI KUNCINYA: Lebar minimum grafik, paksa scroll di layar kecil */
 }
 
 /* Styling untuk scrollbar agar lebih tipis dan tidak mengganggu (opsional) */

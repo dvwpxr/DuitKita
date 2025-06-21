@@ -922,13 +922,11 @@ async function renderFinancialSummaryChart() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 
-    // Ambil data pengeluaran DAN pemasukan untuk bulan ini
     const [expensesInMonth, incomesInMonth] = await Promise.all([
         fetchExpensesForMonth(year, month),
         fetchIncomesForMonth(year, month),
     ]);
 
-    // --- KEMBALI MENGGUNAKAN LOGIKA HARIAN UNTUK SEMUA UKURAN LAYAR ---
     const dailyExpenseTotals = {};
     const dailyIncomeTotals = {};
     const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
@@ -940,14 +938,12 @@ async function renderFinancialSummaryChart() {
             dailyIncomeTotals[i] = 0;
         }
     }
-
     expensesInMonth.forEach((exp) => {
         if (!exp.date) return;
         const day = new Date(exp.date).getUTCDate();
         if (dailyExpenseTotals.hasOwnProperty(day))
             dailyExpenseTotals[day] += Number(exp.amount);
     });
-
     incomesInMonth.forEach((inc) => {
         if (!inc.date) return;
         const day = new Date(inc.date).getUTCDate();
@@ -967,7 +963,7 @@ async function renderFinancialSummaryChart() {
 
     const chartElementContainer = document.querySelector(
         ".horizontal-scroll-wrapper"
-    ); // Targetkan wrapper baru
+    );
     const hasSignificantData =
         expenseDataForChart.some((val) => val > 0) ||
         incomeDataForChart.some((val) => val > 0);
@@ -978,7 +974,6 @@ async function renderFinancialSummaryChart() {
     }
     if (chartElementContainer) chartElementContainer.style.display = "block";
 
-    // Deteksi mobile untuk opsi yang spesifik mobile (seperti posisi legenda)
     const isMobile = window.innerWidth < 768;
 
     expensesChart = new Chart(expensesChartCanvasCtx, {
@@ -989,34 +984,39 @@ async function renderFinancialSummaryChart() {
                 {
                     label: "Pengeluaran",
                     data: expenseDataForChart,
-                    backgroundColor: "rgba(225, 29, 72, 0.7)", // Merah
+                    backgroundColor: "rgba(225, 29, 72, 0.7)",
                     borderColor: "rgba(190, 18, 60, 1)",
                     borderWidth: 1,
                     borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.6, // Beri sedikit lebih banyak ruang antar bar
+                    // PERUBAHAN: Menyesuaikan lebar batang
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.6,
                 },
                 {
                     label: "Pemasukan",
                     data: incomeDataForChart,
-                    backgroundColor: "rgba(22, 163, 74, 0.7)", // Hijau
+                    backgroundColor: "rgba(22, 163, 74, 0.7)",
                     borderColor: "rgba(21, 128, 61, 1)",
                     borderWidth: 1,
                     borderRadius: 4,
-                    barPercentage: 0.8,
+                    // PERUBAHAN: Menyesuaikan lebar batang
+                    barPercentage: 0.7,
                     categoryPercentage: 0.6,
                 },
             ],
         },
         options: {
             responsive: true,
-            // PENTING: maintainAspectRatio: false agar chart bisa mengisi kontainer scroll
             maintainAspectRatio: false,
+            // PERUBAHAN KUNCI: Membuat interaksi lebih mudah
+            interaction: {
+                mode: "index", // Menemukan item pada indeks (kolom) yang sama
+                intersect: false, // PENTING: Tooltip akan muncul meski tidak menyentuh batang persis
+            },
             scales: {
                 x: {
                     stacked: false,
                     ticks: {
-                        // Tidak perlu maxTicksLimit karena sekarang bisa discroll
                         font: { size: 12 },
                     },
                 },
@@ -1031,7 +1031,7 @@ async function renderFinancialSummaryChart() {
                                 return "Rp " + value / 1000 + "rb";
                             return "Rp " + value;
                         },
-                        font: { size: 10 }, // Ukuran font sumbu Y bisa tetap kecil
+                        font: { size: 10 },
                     },
                 },
             },
@@ -1041,16 +1041,22 @@ async function renderFinancialSummaryChart() {
                         label: function (context) {
                             let label = context.dataset.label || "";
                             if (label) label += ": ";
-                            if (context.parsed.y !== null)
+                            if (
+                                context.parsed.y !== null &&
+                                context.parsed.y > 0
+                            ) {
+                                // Hanya tampilkan jika > 0
                                 label +=
                                     "Rp " +
                                     context.parsed.y.toLocaleString("id-ID");
-                            return label;
+                                return label;
+                            }
+                            return null; // Sembunyikan tooltip untuk data bernilai 0
                         },
                     },
                 },
                 legend: {
-                    position: isMobile ? "bottom" : "top", // Legenda tetap responsif
+                    position: isMobile ? "bottom" : "top",
                     labels: {
                         font: { size: 12 },
                         boxWidth: 15,
